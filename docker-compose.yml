@@ -57,10 +57,14 @@ services:
       - postgres_data:/var/lib/postgresql/data
 
   gateway:
-    build: ./gateway
+    build:
+      context: .
+      dockerfile: gateway/Dockerfile
     depends_on: [kafka, postgres]
     networks:
       - sentinel_net
+    ports:
+      - "8000:8000"
 
   ingestion-service:
     build:
@@ -94,6 +98,36 @@ services:
     ports:
       - "8200:8200"
 
+  attack-knowledge-service:
+    build:
+      context: ./attack-knowledge-service
+      dockerfile: Dockerfile
+    environment:
+      - CONSUMER_TOPIC=evidence.graph.events.v1
+      - PRODUCER_TOPIC=investigation.candidates.v1
+    depends_on:
+      - kafka
+      - evidence-service
+    networks:
+      - sentinel_net
+    ports:
+      - "8300:8300"
+
+  threat-intelligence-service:
+    build:
+      context: ./threat-intelligence-service
+      dockerfile: Dockerfile
+    environment:
+      - CONSUMER_TOPIC=evidence.graph.events.v1
+      - PRODUCER_TOPIC=investigation.candidates.v1
+    depends_on:
+      - kafka
+      - evidence-service
+    networks:
+      - sentinel_net
+    ports:
+      - "8400:8400"
+
   knowledge-service:
     image: busybox
     command: sleep 3600
@@ -101,22 +135,105 @@ services:
       - sentinel_net
 
   investigation-service:
-    image: busybox
-    command: sleep 3600
+    build:
+      context: ./investigation-service
+      dockerfile: Dockerfile
+    environment:
+      - SERVICE_NAME=investigation-service
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - CONSUMER_TOPIC=investigation.candidates.v1
+      - PRODUCER_TOPIC=investigation.active.v1
+      - CONSUMER_GROUP=investigation-service-group
+    depends_on:
+      - kafka
     networks:
       - sentinel_net
+    ports:
+      - "8500:8500"
 
   ai-service:
-    image: busybox
-    command: sleep 3600
+    build:
+      context: ./ai-service
+      dockerfile: Dockerfile
+    environment:
+      - AI_SERVICE_NAME=ai-investigation-service
+      - AI_API_PORT=8600
+      - INVESTIGATION_SERVICE_URL=http://investigation-service:8500
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - SNAPSHOT_TOPIC=investigation.snapshot.created.v1
+      - REASONED_TOPIC=investigation.reasoned.v1
+      - REPORT_TOPIC=investigation.report.generated.v1
+      - AI_METRICS_TOPIC=investigation.ai.metrics.v1
+      - AI_CONSUMER_GROUP=ai-investigation-service-group
+      - LLM_PROVIDER=mock
+    depends_on:
+      - kafka
+      - investigation-service
     networks:
       - sentinel_net
+    ports:
+      - "8600:8600"
 
   execution-service:
-    image: busybox
-    command: sleep 3600
+    build:
+      context: ./execution-service
+      dockerfile: Dockerfile
+    environment:
+      - EXECUTION_SERVICE_NAME=execution-decision-service
+      - EXECUTION_API_PORT=8700
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - INVESTIGATION_COMPLETED_TOPIC=investigation.completed.v1
+      - EXECUTION_PLAN_CREATED_TOPIC=execution.plan.created.v1
+      - EXECUTION_POLICY_CHECKED_TOPIC=execution.policy.checked.v1
+      - EXECUTION_AWAITING_APPROVAL_TOPIC=execution.awaiting.approval.v1
+      - EXECUTION_APPROVED_TOPIC=execution.approved.v1
+      - EXECUTION_READY_TOPIC=execution.ready.v1
+      - EXECUTION_STARTED_TOPIC=execution.started.v1
+      - EXECUTION_COMPLETED_TOPIC=execution.completed.v1
+      - EXECUTION_FAILED_TOPIC=execution.failed.v1
+      - EXECUTION_CANCELLED_TOPIC=execution.cancelled.v1
+      - EXECUTION_VERIFIED_TOPIC=execution.verified.v1
+      - EXECUTION_AUDIT_TOPIC=execution.audit.v1
+      - EXECUTION_CONSUMER_GROUP=execution-decision-service-group
+    depends_on:
+      - kafka
     networks:
       - sentinel_net
+    ports:
+      - "8700:8700"
+
+  servicenow-adapter:
+    build:
+      context: ./servicenow-adapter
+      dockerfile: Dockerfile
+    environment:
+      - SERVICENOW_ADAPTER_SERVICE_NAME=servicenow-execution-adapter
+      - SERVICENOW_ADAPTER_API_PORT=8800
+      - SERVICENOW_ADAPTER_LOG_LEVEL=INFO
+      - SERVICENOW_BASE_URL=${SERVICENOW_BASE_URL}
+      - SERVICENOW_USERNAME=${SERVICENOW_USERNAME}
+      - SERVICENOW_PASSWORD=${SERVICENOW_PASSWORD}
+      - SERVICENOW_AUTH_MODE=basic
+      - SERVICENOW_VERIFY_SSL=true
+      - SERVICENOW_TIMEOUT_SECONDS=20
+      - SERVICENOW_RETRY_COUNT=3
+      - SERVICENOW_RETRY_BASE_DELAY_MS=250
+      - SERVICENOW_RETRY_MAX_DELAY_MS=5000
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - SERVICENOW_ADAPTER_CONSUMER_GROUP=servicenow-adapter-group
+      - EXECUTION_READY_TOPIC=execution.ready.v1
+      - EXECUTION_STARTED_TOPIC=execution.started.v1
+      - EXECUTION_COMPLETED_TOPIC=execution.completed.v1
+      - EXECUTION_FAILED_TOPIC=execution.failed.v1
+      - EXECUTION_VERIFIED_TOPIC=execution.verified.v1
+      - SERVICENOW_ADAPTER_AUDIT_LOG_PATH=/app/audit/execution_audit.jsonl
+    depends_on:
+      - kafka
+      - execution-service
+    networks:
+      - sentinel_net
+    ports:
+      - "8800:8800"
 
   frontend:
     image: node:18-alpine
@@ -135,6 +252,7 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
     depends_on:
+      - gateway
       - ingestion-service
       - evidence-service
       - kafka

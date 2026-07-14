@@ -14,6 +14,8 @@ class Settings(BaseSettings):
     kafka_group_id: str = Field("ingestion-service-group", env="KAFKA_GROUP_ID")
     redis_url: AnyUrl = Field("redis://localhost:6379/0", env="REDIS_URL")
     normalized_topic: str = Field("normalized-events.v1", env="NORMALIZED_TOPIC")
+    # comma-separated or default list of topics to subscribe to for ingestion
+    ingress_topics: list = Field(["events.unified.v1", "security-events.v1", "transaction-events.v1", "threat-events.v1", "fraud-events.v1", "identity-events.v1", "asset-events.v1"], env="INGRESS_TOPICS")
     dlq_suffix: str = Field(".dlq.v1", env="DLQ_SUFFIX")
 
     class Config:

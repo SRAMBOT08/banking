@@ -1,0 +1,16 @@
+name: account_takeover
+version: 1.0
+description: Account takeover pattern
+required:
+  - device_id
+  - beneficiary_id
+  - transaction_id
+optional:
+  - vpn
+  - ip
+weights:
+  required: 30
+  optional: 10
+mitre:
+  technique: T1110
+  tactic: Initial Access

@@ -1,0 +1,29 @@
+name: account_takeover
+version: 1.0
+description: Account takeover attack pattern represented as a graph
+nodes:
+  - id: device
+    name: device
+    requires:
+      - device_id
+  - id: beneficiary
+    name: beneficiary
+    requires:
+      - beneficiary_id
+  - id: transaction
+    name: transaction
+    requires:
+      - transaction_id
+edges:
+  - from: device
+    to: transaction
+    type: REQUIRES
+  - from: beneficiary
+    to: transaction
+    type: REQUIRES
+weights:
+  required: 30
+  optional: 10
+mitre:
+  technique: T1110
+  tactic: Initial Access

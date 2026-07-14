@@ -1,0 +1,9 @@
+fastapi
+uvicorn[standard]
+pydantic
+pydantic-settings
+confluent-kafka
+pyyaml
+python-json-logger
+pytest
+httpx
