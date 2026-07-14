@@ -1,0 +1,15 @@
+{
+  "nodes": [
+    {"canonical_id": "user_user_123", "labels": ["USER"], "properties": {"id": "user_123"}},
+    {"canonical_id": "account_acct_abc", "labels": ["ACCOUNT"], "properties": {"id": "acct_abc"}},
+    {"canonical_id": "transaction_tx_1", "labels": ["TRANSACTION"], "properties": {"id": "tx_1"}},
+    {"canonical_id": "transaction_tx_2", "labels": ["TRANSACTION"], "properties": {"id": "tx_2"}},
+    {"canonical_id": "beneficiary_ben_1", "labels": ["BENEFICIARY"], "properties": {"id": "ben_1"}}
+  ],
+  "relationships": [
+    {"from": "user_user_123", "to": "account_acct_abc", "type": "OWNS"},
+    {"from": "account_acct_abc", "to": "transaction_tx_1", "type": "INITIATED"},
+    {"from": "account_acct_abc", "to": "transaction_tx_2", "type": "INITIATED"},
+    {"from": "transaction_tx_2", "to": "beneficiary_ben_1", "type": "SENT_TO"}
+  ]
+}

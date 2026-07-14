@@ -1,0 +1,12 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sentineliq-shared"
+version = "0.1.0"
+description = "Shared utilities and event models for SentinelIQ"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["sentineliq_shared*"]

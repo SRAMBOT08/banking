@@ -1,0 +1,153 @@
+version: '3.9'
+
+networks:
+  sentinel_net:
+    driver: bridge
+
+services:
+  zookeeper:
+    image: zookeeper:3.8.1
+    environment:
+      - ALLOW_ANONYMOUS_LOGIN=yes
+    networks:
+      - sentinel_net
+    volumes:
+      - zookeeper_data:/bitnami
+
+  kafka:
+    image: confluentinc/cp-kafka:7.4.0
+    environment:
+      - KAFKA_BROKER_ID=1
+      - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181
+      - KAFKA_LISTENERS=PLAINTEXT://:9092
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092
+      - KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE=true
+    depends_on:
+      - zookeeper
+    networks:
+      - sentinel_net
+    volumes:
+      - kafka_data:/bitnami
+
+  redis:
+    image: redis:7-alpine
+    networks:
+      - sentinel_net
+    volumes:
+      - redis_data:/data
+
+  neo4j:
+    image: neo4j:5
+    environment:
+      - NEO4J_AUTH=neo4j/test
+    networks:
+      - sentinel_net
+    volumes:
+      - neo4j_data:/data
+
+  postgres:
+    image: postgres:15
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=sentinel
+    networks:
+      - sentinel_net
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  gateway:
+    build: ./gateway
+    depends_on: [kafka, postgres]
+    networks:
+      - sentinel_net
+
+  ingestion-service:
+    build:
+      context: .
+      dockerfile: ingestion-service/Dockerfile
+    environment:
+      - SERVICE_NAME=ingestion-service
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - REDIS_URL=redis://redis:6379/0
+      - NORMALIZED_TOPIC=normalized-events.v1
+    depends_on:
+      - kafka
+      - redis
+    networks:
+      - sentinel_net
+    ports:
+      - "8100:8100"
+
+  evidence-service:
+    build:
+      context: .
+      dockerfile: evidence-service/Dockerfile
+    environment:
+      - SERVICE_NAME=evidence-service
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+    depends_on:
+      - kafka
+      - neo4j
+    networks:
+      - sentinel_net
+    ports:
+      - "8200:8200"
+
+  knowledge-service:
+    image: busybox
+    command: sleep 3600
+    networks:
+      - sentinel_net
+
+  investigation-service:
+    image: busybox
+    command: sleep 3600
+    networks:
+      - sentinel_net
+
+  ai-service:
+    image: busybox
+    command: sleep 3600
+    networks:
+      - sentinel_net
+
+  execution-service:
+    image: busybox
+    command: sleep 3600
+    networks:
+      - sentinel_net
+
+  frontend:
+    image: node:18-alpine
+    command: sleep 3600
+    ports:
+      - 5173:5173
+    networks:
+      - sentinel_net
+
+  test-runner:
+    build:
+      context: .
+      dockerfile: ./tests/Dockerfile.test
+    networks:
+      - sentinel_net
+    environment:
+      - PYTHONUNBUFFERED=1
+    depends_on:
+      - ingestion-service
+      - evidence-service
+      - kafka
+      - redis
+      - neo4j
+      - postgres
+    profiles:
+      - test
+
+volumes:
+  zookeeper_data:
+  kafka_data:
+  redis_data:
+  neo4j_data:
+  postgres_data:
+  logs:

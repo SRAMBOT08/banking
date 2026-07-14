@@ -1,0 +1,13 @@
+fastapi
+uvicorn[standard]
+pydantic
+pydantic-settings
+orjson
+python-dotenv
+confluent-kafka
+pytest
+httpx
+
+# runtime/runtime-deps
+python-json-logger
+pydantic>=2.0
