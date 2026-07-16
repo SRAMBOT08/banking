@@ -1,0 +1,9 @@
+name: servicenow_pipeline
+version: 0.1.0
+description: "ServiceNow incident pipeline scaffold for future incident creation workflows."
+author: NousResearch
+kind: standalone
+platforms:
+  - linux
+  - macos
+  - windows

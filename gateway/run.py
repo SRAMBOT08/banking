@@ -2304,6 +2304,15 @@ def _teams_pipeline_plugin_enabled() -> bool:
     return "teams_pipeline" in enabled or "teams-pipeline" in enabled
 
 
+def _servicenow_pipeline_plugin_enabled() -> bool:
+    """Return True when the standalone ServiceNow pipeline plugin is enabled."""
+    config = _load_gateway_config()
+    enabled = cfg_get(config, "plugins", "enabled", default=[])
+    if not isinstance(enabled, list):
+        return False
+    return "servicenow_pipeline" in enabled or "servicenow-pipeline" in enabled
+
+
 def _gateway_config_home() -> Path:
     """Return the Hermes home that gateway config reads should use."""
     override = get_hermes_home_override()
@@ -2976,6 +2985,9 @@ class GatewayRunner(GatewayAuthorizationMixin, GatewayKanbanWatchersMixin, Gatew
         # Teams meeting pipeline runtime (bound later when msgraph_webhook adapter exists).
         self._teams_pipeline_runtime = None
         self._teams_pipeline_runtime_error: Optional[str] = None
+        # ServiceNow pipeline runtime (bound later when the plugin is enabled).
+        self._servicenow_pipeline_runtime = None
+        self._servicenow_pipeline_runtime_error: Optional[str] = None
         # Track pending exec approvals per session
         # Key: session_key, Value: {"command": str, "pattern_key": str, ...}
         self._pending_approvals: Dict[str, Dict[str, Any]] = {}
@@ -3152,6 +3164,35 @@ class GatewayRunner(GatewayAuthorizationMixin, GatewayKanbanWatchersMixin, Gatew
             logger.warning(
                 "Teams pipeline runtime unavailable: %s",
                 self._teams_pipeline_runtime_error,
+            )
+
+    def _wire_servicenow_pipeline_runtime(self) -> None:
+        """Bind the ServiceNow pipeline runtime during gateway startup.
+
+        The ServiceNow capability is standalone like Teams, but it does not
+        attach to a platform adapter. It still participates in startup so the
+        runtime is available to operator-facing entry points and future
+        execution hooks when the plugin is enabled.
+        """
+        if not _servicenow_pipeline_plugin_enabled():
+            logger.debug("ServiceNow pipeline plugin is disabled; skipping runtime wiring")
+            return
+        try:
+            from plugins.servicenow_pipeline.runtime import bind_gateway_runtime
+        except Exception as exc:
+            logger.warning("ServiceNow pipeline runtime import failed: %s", exc)
+            return
+        try:
+            bound = bind_gateway_runtime(self)
+        except Exception as exc:
+            logger.warning("ServiceNow pipeline runtime wiring failed: %s", exc)
+            return
+        if bound:
+            logger.info("ServiceNow pipeline runtime bound")
+        elif self._servicenow_pipeline_runtime_error:
+            logger.warning(
+                "ServiceNow pipeline runtime unavailable: %s",
+                self._servicenow_pipeline_runtime_error,
             )
 
 
@@ -7246,6 +7287,7 @@ class GatewayRunner(GatewayAuthorizationMixin, GatewayKanbanWatchersMixin, Gatew
             return True
         self.delivery_router.adapters = self.adapters
         self._wire_teams_pipeline_runtime()
+        self._wire_servicenow_pipeline_runtime()
 
         self._running = True
         self._update_runtime_status("running")
