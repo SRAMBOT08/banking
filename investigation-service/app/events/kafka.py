@@ -1,10 +1,13 @@
 from __future__ import annotations
 import asyncio
+from datetime import datetime, timezone
 from typing import Callable, Optional
 from confluent_kafka import Consumer, KafkaError, Producer
 from app.config.settings import settings
 from app.core.logger import get_logger
 from app.models.events import InvestigationEvent, snapshot_metadata_event
+from shared.sentineliq_shared.events.autonomous import InvestigationCompletedEvent
+from uuid import uuid5, NAMESPACE_URL
 
 logger = get_logger("investigation_kafka")
 
@@ -29,6 +32,29 @@ class KafkaProducer:
         logger.info("snapshot_published", extra={"investigation_id": snapshot.metadata.investigation_id,
                                                    "snapshot_version": snapshot.metadata.snapshot_version,
                                                    "topic": topic})
+
+    def publish_completed(self, topic: str, investigation, context=None, snapshot=None):
+        timestamp = datetime.now(timezone.utc)
+        investigation_id = str(investigation.investigation_id)
+        event_id = uuid5(NAMESPACE_URL, f"investigation-completed|{investigation_id}|{investigation.metadata.updated_at}")
+        context_data = context.model_dump(mode="json") if hasattr(context, "model_dump") else (context or {})
+        snapshot_data = snapshot.model_dump(mode="json") if hasattr(snapshot, "model_dump") else (snapshot or {})
+        event = InvestigationCompletedEvent(
+            event_id=event_id,
+            timestamp=timestamp,
+            tenant_id=investigation.metadata.tenant_id,
+            correlation_id=getattr(investigation.metadata, "correlation_id", None),
+            investigation_id=investigation_id,
+            source_id=investigation_id,
+            producer_service="investigation-service",
+            idempotency_key=f"investigation-completed:{investigation_id}:{investigation.metadata.updated_at}",
+            decision=str(getattr(investigation, "state", "completed")),
+            confidence=getattr(investigation, "confidence", None),
+            context=context_data,
+            snapshot=snapshot_data,
+            metadata={"investigation": investigation.model_dump(mode="json")},
+        )
+        self.publish(topic, event.model_dump_json().encode(), investigation_id.encode())
 
 
 class KafkaConsumer:

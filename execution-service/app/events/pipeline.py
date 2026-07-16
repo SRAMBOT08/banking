@@ -19,4 +19,20 @@ class ExecutionPipeline:
             self.publisher.publish_awaiting_approval(approval.model_dump(mode="json"), plan.plan_id)
         if not approvals:
             self.publisher.publish_ready(plan.model_dump(mode="json"), plan.plan_id)
+            self.publisher.publish_execution_completed(plan, event)
         logger.info("execution_plan_processed", extra={"plan_id": plan.plan_id, "investigation_id": plan.investigation_id})
+
+    async def handle_report_generated(self, event: dict):
+        report = event.get("report", {})
+        case_file = report.get("case_file", {}) or event.get("case_file", {})
+        metadata = case_file.get("metadata", {})
+        recommendations = case_file.get("recommendations", {})
+        payload = {
+            **event,
+            "metadata": metadata,
+            "investigation_id": event.get("investigation_id") or metadata.get("investigation_id"),
+            "tenant_id": event.get("tenant_id") or metadata.get("tenant_id"),
+            "correlation_id": event.get("correlation_id") or metadata.get("correlation_id"),
+            "recommendations": recommendations.get("recommendations", []) if isinstance(recommendations, dict) else recommendations,
+        }
+        await self.handle_completed_investigation(payload)

@@ -28,7 +28,7 @@ app.include_router(router)
 
 @app.on_event("startup")
 async def startup():
-    consumer.start(CandidatePipeline(manager, publisher).handle)
+    consumer.start(CandidatePipeline(manager, publisher, context_builder, snapshot_manager).handle)
     logger.info("service_started", extra={"service": settings.service_name, "consumer_topic": settings.consumer_topic, "producer_topic": settings.producer_topic})
 
 

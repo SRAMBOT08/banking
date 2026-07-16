@@ -1,0 +1,21 @@
+﻿{"asctime": "2026-07-15 21:56:06,042", "levelname": "INFO", "name": "candidate_pipeline", "message": "agent_components_initialized"}
+{"asctime": "2026-07-15 21:56:06,042", "levelname": "INFO", "name": "investigation-service", "message": "service_started", "service": "investigation-service", "consumer_topic": "investigation.candidates.v1", "producer_topic": "investigation.active.v1"}
+INFO:     127.0.0.1:44688 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51136 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54220 - "GET /health HTTP/1.1" 200 OK
+INFO:     172.18.0.21:56430 - "GET /investigations HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55850 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36324 - "GET /health HTTP/1.1" 200 OK
+INFO:     172.18.0.21:43956 - "GET /investigations HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56938 - "GET /health HTTP/1.1" 200 OK
+docker : INFO:     Started server process [1]
+At line:1 char:1
++ docker logs banking-investigation-service-1 --tail 200 2>&1 | Out-Fil ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (INFO:     Started server process  
+   [1]:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8500 (Press CTRL+C to quit)

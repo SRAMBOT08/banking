@@ -22,4 +22,3 @@ class KafkaConsumerStub:
 
     def stop(self):
         self._running = False
-*** End Patch

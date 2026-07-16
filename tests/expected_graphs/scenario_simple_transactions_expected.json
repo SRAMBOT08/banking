@@ -1,15 +1,14 @@
 {
   "nodes": [
-    {"canonical_id": "user_user_123", "labels": ["USER"], "properties": {"id": "user_123"}},
-    {"canonical_id": "account_acct_abc", "labels": ["ACCOUNT"], "properties": {"id": "acct_abc"}},
-    {"canonical_id": "transaction_tx_1", "labels": ["TRANSACTION"], "properties": {"id": "tx_1"}},
-    {"canonical_id": "transaction_tx_2", "labels": ["TRANSACTION"], "properties": {"id": "tx_2"}},
-    {"canonical_id": "beneficiary_ben_1", "labels": ["BENEFICIARY"], "properties": {"id": "ben_1"}}
+    {"canonical_id": "74d5449f927e810d8f59bd564b064609082b8cde6707d561b423ee6054341600", "labels": ["USER"], "properties": {"id": "user_123", "source": "bank_1"}},
+    {"canonical_id": "478f99638b955cff470d0450ae08a1380d44a36345cf99032f4e781e518d8276", "labels": ["ACCOUNT"], "properties": {"id": "acct_abc", "source": "bank_1"}},
+    {"canonical_id": "8e2e98407f59d5beec7b456a4a088a709ef7fc96aef30366f11bfa67de09c925", "labels": ["TRANSACTION"], "properties": {"id": "tx_1", "source": "bank_1"}},
+    {"canonical_id": "ec8359cf12802da8e563b138953664783b20e60a1c0d0cd8fc2997f5a21e5f6d", "labels": ["TRANSACTION"], "properties": {"id": "tx_2", "source": "bank_1"}},
+    {"canonical_id": "f957be4609d56cb8c2519069190d81f6c6187f349f812c75ebfae8a324a5673a", "labels": ["BENEFICIARY"], "properties": {"id": "ben_1", "source": "bank_1"}}
   ],
   "relationships": [
-    {"from": "user_user_123", "to": "account_acct_abc", "type": "OWNS"},
-    {"from": "account_acct_abc", "to": "transaction_tx_1", "type": "INITIATED"},
-    {"from": "account_acct_abc", "to": "transaction_tx_2", "type": "INITIATED"},
-    {"from": "transaction_tx_2", "to": "beneficiary_ben_1", "type": "SENT_TO"}
+    {"from": "478f99638b955cff470d0450ae08a1380d44a36345cf99032f4e781e518d8276", "to": "8e2e98407f59d5beec7b456a4a088a709ef7fc96aef30366f11bfa67de09c925", "type": "INITIATED"},
+    {"from": "478f99638b955cff470d0450ae08a1380d44a36345cf99032f4e781e518d8276", "to": "ec8359cf12802da8e563b138953664783b20e60a1c0d0cd8fc2997f5a21e5f6d", "type": "INITIATED"},
+    {"from": "ec8359cf12802da8e563b138953664783b20e60a1c0d0cd8fc2997f5a21e5f6d", "to": "f957be4609d56cb8c2519069190d81f6c6187f349f812c75ebfae8a324a5673a", "type": "SENT_TO"}
   ]
 }

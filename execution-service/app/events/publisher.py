@@ -1,12 +1,17 @@
 from __future__ import annotations
 
 import json
+import sys
+from pathlib import Path
 from typing import Any
 
 from confluent_kafka import Producer
 
 from app.config.settings import Settings
 from app.core.logger import get_logger
+sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
+from shared.sentineliq_shared.events.autonomous import ExecutionCompletedEvent
+from uuid import NAMESPACE_URL, uuid5
 
 logger = get_logger("execution_publisher")
 
@@ -38,6 +43,21 @@ class ExecutionEventPublisher:
 
     def publish_ready(self, payload: dict[str, Any], key: str) -> None:
         self.publish(self.settings.ready_topic, key, payload)
+
+    def publish_execution_completed(self, plan, source: dict[str, Any]) -> None:
+        event = ExecutionCompletedEvent(
+            event_id=uuid5(NAMESPACE_URL, f"execution-completed|{plan.plan_id}"),
+            tenant_id=plan.tenant_id,
+            correlation_id=plan.correlation_id,
+            investigation_id=plan.investigation_id,
+            source_id=str(source.get("event_id", plan.plan_id)),
+            producer_service=self.settings.service_name,
+            idempotency_key=f"execution-completed:{plan.plan_id}",
+            execution_id=plan.plan_id,
+            status=plan.plan_state.value,
+            result={"plan_id": plan.plan_id, "tasks": plan.model_dump(mode="json").get("tasks", [])},
+        )
+        self.publish(self.settings.completed_topic, plan.plan_id, event.model_dump(mode="json"))
 
     def publish_started(self, payload: dict[str, Any], key: str) -> None:
         self.publish(self.settings.started_topic, key, payload)

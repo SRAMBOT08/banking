@@ -1,0 +1,79 @@
+﻿docker : %3|1784152213.474|FAIL|rdkafka#producer-1| 
+[thrd:kafka:9092/bootstrap]: kafka:9092/bootstrap: Connect to 
+ipv4#172.18.0.8:9092 failed: Connection refused (after 1ms in state CONNECT)
+At line:1 char:1
++ docker logs banking-investigation-service-1 --tail 80 2>&1 | Out-File ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (%3|1784152213.4... state CONNECT) 
+   :String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+INFO:     Started server process [1]
+INFO:     Waiting for application startup.
+%3|1784152213.502|FAIL|rdkafka#consumer-2| [thrd:kafka:9092/bootstrap]: 
+kafka:9092/bootstrap: Connect to ipv4#172.18.0.8:9092 failed: Connection 
+refused (after 1ms in state CONNECT)
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8500 (Press CTRL+C to quit)
+%3|1784152213.552|FAIL|rdkafka#consumer-2| [thrd:kafka:9092/bootstrap]: 
+kafka:9092/bootstrap: Connect to ipv4#172.18.0.8:9092 failed: Connection 
+refused (after 0ms in state CONNECT, 1 identical error(s) suppressed)
+%3|1784152214.473|FAIL|rdkafka#producer-1| [thrd:kafka:9092/bootstrap]: 
+kafka:9092/bootstrap: Connect to ipv4#172.18.0.8:9092 failed: Connection 
+refused (after 0ms in state CONNECT, 1 identical error(s) suppressed)
+{"asctime": "2026-07-15 21:50:13,500", "levelname": "INFO", "name": "candidate_pipeline", "message": "agent_components_initialized"}
+{"asctime": "2026-07-15 21:50:13,501", "levelname": "INFO", "name": "investigation-service", "message": "service_started", "service": "investigation-service", "consumer_topic": "investigation.candidates.v1", "producer_topic": "investigation.active.v1"}
+INFO:     127.0.0.1:38276 - "GET /health HTTP/1.1" 200 OK
+{"asctime": "2026-07-15 21:50:25,634", "levelname": "INFO", "name": "candidate_pipeline", "message": "candidate_message_received"}
+{"asctime": "2026-07-15 21:50:25,636", "levelname": "ERROR", "name": "candidate_pipeline", "message": "candidate_processing_failed", "error": "2 validation errors for CandidateInput\nconfidence\n  Input should be a valid integer, got a number with a fractional part [type=int_from_float, input_value=0.85, input_type=float]\n    For further information visit https://errors.pydantic.dev/2.13/v/int_from_float\ntimestamp\n  Field required [type=missing, input_value={'candidate_id': 'phase1-...'type': 'geo_anomaly'}]}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing", "exception_type": "ValidationError"}
+{"asctime": "2026-07-15 21:50:25,638", "levelname": "INFO", "name": "candidate_pipeline", "message": "candidate_message_received"}
+{"asctime": "2026-07-15 21:50:25,638", "levelname": "ERROR", "name": "candidate_pipeline", "message": "candidate_processing_failed", "error": "2 validation errors for CandidateInput\nconfidence\n  Input should be a valid integer, got a number with a fractional part [type=int_from_float, input_value=0.85, input_type=float]\n    For further information visit https://errors.pydantic.dev/2.13/v/int_from_float\ntimestamp\n  Field required [type=missing, input_value={'candidate_id': 'phase1-...'type': 'geo_anomaly'}]}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing", "exception_type": "ValidationError"}
+{"asctime": "2026-07-15 21:50:25,640", "levelname": "INFO", "name": "candidate_pipeline", "message": "candidate_message_received"}
+{"asctime": "2026-07-15 21:50:25,640", "levelname": "ERROR", "name": "candidate_pipeline", "message": "candidate_processing_failed", "error": "1 validation error for CandidateInput\ntimestamp\n  Field required [type=missing, input_value={'candidate_id': 'demo-at...pe': 'large_transfer'}]}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing", "exception_type": "ValidationError"}
+INFO:     127.0.0.1:42678 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54072 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49872 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52438 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41072 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33152 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49314 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33676 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41496 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38910 - "GET /health HTTP/1.1" 200 OK
+{"asctime": "2026-07-15 21:52:04,558", "levelname": "INFO", "name": "candidate_pipeline", "message": "candidate_message_received"}
+{"asctime": "2026-07-15 21:52:04,560", "levelname": "ERROR", "name": "candidate_pipeline", "message": "candidate_processing_failed", "error": "1 validation error for CandidateInput\ntimestamp\n  Field required [type=missing, input_value={'candidate_id': 'demo-at...pe': 'large_transfer'}]}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing", "exception_type": "ValidationError"}
+INFO:     127.0.0.1:44824 - "GET /health HTTP/1.1" 200 OK
+INFO:     172.18.0.13:38182 - "GET /investigations HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42360 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43408 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37486 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51818 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34212 - "GET /health HTTP/1.1" 200 OK
+{"asctime": "2026-07-15 21:53:09,422", "levelname": "INFO", "name": "candidate_pipeline", "message": "candidate_message_received"}
+{"asctime": "2026-07-15 21:53:09,424", "levelname": "INFO", "name": "candidate_pipeline", "message": "candidate_parsed", "candidate_id": "demo-ato-valid-001", "pattern": "Account Takeover"}
+{"asctime": "2026-07-15 21:53:09,427", "levelname": "INFO", "name": "investigation_memory", "message": "memory_event_appended", "investigation_id": "a07ed269-e6c7-4563-90a0-32479475ba93", "event_type": "INVESTIGATION_CREATED", "sequence": 1}
+{"asctime": "2026-07-15 21:53:09,427", "levelname": "INFO", "name": "investigation_manager", "message": "investigation_created", "investigation_id": "a07ed269-e6c7-4563-90a0-32479475ba93"}
+{"asctime": "2026-07-15 21:53:09,428", "levelname": "INFO", "name": "investigation_memory", "message": "memory_event_appended", "investigation_id": "a07ed269-e6c7-4563-90a0-32479475ba93", "event_type": "HYPOTHESIS_ADDED", "sequence": 2}
+{"asctime": "2026-07-15 21:53:09,429", "levelname": "INFO", "name": "investigation_memory", "message": "memory_event_appended", "investigation_id": "a07ed269-e6c7-4563-90a0-32479475ba93", "event_type": "EVIDENCE_ADDED", "sequence": 3}
+{"asctime": "2026-07-15 21:53:09,429", "levelname": "INFO", "name": "investigation_manager", "message": "evidence_added", "investigation_id": "a07ed269-e6c7-4563-90a0-32479475ba93", "evidence_id": "sim-auth-3"}
+{"asctime": "2026-07-15 21:53:09,430", "levelname": "INFO", "name": "investigation_memory", "message": "memory_event_appended", "investigation_id": "a07ed269-e6c7-4563-90a0-32479475ba93", "event_type": "EVIDENCE_ADDED", "sequence": 4}
+{"asctime": "2026-07-15 21:53:09,430", "levelname": "INFO", "name": "investigation_manager", "message": "evidence_added", "investigation_id": "a07ed269-e6c7-4563-90a0-32479475ba93", "evidence_id": "sim-device-3"}
+{"asctime": "2026-07-15 21:53:09,430", "levelname": "INFO", "name": "investigation_memory", "message": "memory_event_appended", "investigation_id": "a07ed269-e6c7-4563-90a0-32479475ba93", "event_type": "EVIDENCE_ADDED", "sequence": 5}
+{"asctime": "2026-07-15 21:53:09,430", "levelname": "INFO", "name": "investigation_manager", "message": "evidence_added", "investigation_id": "a07ed269-e6c7-4563-90a0-32479475ba93", "evidence_id": "sim-transfer-3"}
+{"asctime": "2026-07-15 21:53:09,432", "levelname": "INFO", "name": "investigation_memory", "message": "memory_event_appended", "investigation_id": "a07ed269-e6c7-4563-90a0-32479475ba93", "event_type": "TIMELINE_UPDATED", "sequence": 6}
+{"asctime": "2026-07-15 21:53:09,433", "levelname": "INFO", "name": "investigation_memory", "message": "memory_event_appended", "investigation_id": "a07ed269-e6c7-4563-90a0-32479475ba93", "event_type": "CONFIDENCE_UPDATED", "sequence": 7}
+{"asctime": "2026-07-15 21:53:09,433", "levelname": "INFO", "name": "investigation_memory", "message": "memory_event_appended", "investigation_id": "a07ed269-e6c7-4563-90a0-32479475ba93", "event_type": "MISSING_EVIDENCE_UPDATED", "sequence": 8}
+{"asctime": "2026-07-15 21:53:09,433", "levelname": "INFO", "name": "investigation_memory", "message": "memory_event_appended", "investigation_id": "a07ed269-e6c7-4563-90a0-32479475ba93", "event_type": "PRIORITY_CHANGED", "sequence": 9}
+{"asctime": "2026-07-15 21:53:09,434", "levelname": "INFO", "name": "investigation_memory", "message": "memory_event_appended", "investigation_id": "a07ed269-e6c7-4563-90a0-32479475ba93", "event_type": "STATE_CHANGED", "sequence": 10}
+{"asctime": "2026-07-15 21:53:09,434", "levelname": "INFO", "name": "investigation_memory", "message": "memory_event_appended", "investigation_id": "a07ed269-e6c7-4563-90a0-32479475ba93", "event_type": "STATE_CHANGED", "sequence": 11}
+{"asctime": "2026-07-15 21:53:09,434", "levelname": "INFO", "name": "investigation_memory", "message": "memory_event_appended", "investigation_id": "a07ed269-e6c7-4563-90a0-32479475ba93", "event_type": "STATE_CHANGED", "sequence": 12}
+{"asctime": "2026-07-15 21:53:09,551", "levelname": "INFO", "name": "investigation_kafka", "message": "kafka_published", "topic": "investigation.snapshot.created.v1"}
+{"asctime": "2026-07-15 21:53:09,552", "levelname": "INFO", "name": "investigation_kafka", "message": "snapshot_published", "investigation_id": "a07ed269-e6c7-4563-90a0-32479475ba93", "snapshot_version": 1, "topic": "investigation.snapshot.created.v1"}
+{"asctime": "2026-07-15 21:53:09,552", "levelname": "INFO", "name": "snapshot_manager", "message": "snapshot_created", "investigation_id": "a07ed269-e6c7-4563-90a0-32479475ba93", "snapshot_id": "463b6b24fb85984dc0f846678d7dcfe0", "snapshot_version": 1, "reason": "investigation_created"}
+{"asctime": "2026-07-15 21:53:09,552", "levelname": "INFO", "name": "investigation_manager", "message": "investigation_updated", "investigation_id": "a07ed269-e6c7-4563-90a0-32479475ba93", "confidence": 62, "priority": "MEDIUM"}
+{"asctime": "2026-07-15 21:53:09,552", "levelname": "INFO", "name": "candidate_pipeline", "message": "candidate_ingested", "investigation_id": "a07ed269-e6c7-4563-90a0-32479475ba93", "pattern": "Account Takeover"}
+{"asctime": "2026-07-15 21:53:09,552", "levelname": "ERROR", "name": "candidate_pipeline", "message": "candidate_processing_failed", "error": "'Investigation' object has no attribute 'tenant_id'", "exception_type": "AttributeError"}
+{"asctime": "2026-07-15 21:53:10,904", "levelname": "INFO", "name": "snapshot_manager", "message": "snapshot_loaded", "investigation_id": "a07ed269-e6c7-4563-90a0-32479475ba93", "snapshot_version": 1}
+INFO:     172.18.0.20:57082 - "GET /investigations/a07ed269-e6c7-4563-90a0-32479475ba93/snapshots/1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60924 - "GET /health HTTP/1.1" 200 OK
+INFO:     172.18.0.13:36922 - "GET /investigations HTTP/1.1" 200 OK

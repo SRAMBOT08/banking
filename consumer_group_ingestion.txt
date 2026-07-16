@@ -1,0 +1,42 @@
+﻿
+Error: Executing consumer group command failed due to org.apache.kafka.common.errors.TimeoutException: Call(callName=describeGroups(api=FIND_COORDINATOR), deadlineMs=1784151789254, tries=5304, nextAllowedTryMs=1784151789366) timed out at 1784151789266 after 5304 attempt(s)
+docker : java.util.concurrent.ExecutionException: 
+org.apache.kafka.common.errors.TimeoutException: 
+Call(callName=describeGroups(api=FIND_COORDINATOR), deadlineMs=1784151789254, 
+tries=5304, nextAllowedTryMs=1784151789366) timed out at 1784151789266 after 
+5304 attempt(s)
+At line:1 char:1
++ docker exec banking-kafka-1 kafka-consumer-groups --bootstrap-server  ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (java.util.concu...5304 attempt(s) 
+   :String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+	at java.base/java.util.concurrent.CompletableFuture.reportGet(CompletableFutur
+e.java:395)
+	at java.base/java.util.concurrent.CompletableFuture.get(CompletableFuture.java
+:1999)
+	at 
+org.apache.kafka.common.internals.KafkaFutureImpl.get(KafkaFutureImpl.java:165)
+	at kafka.admin.ConsumerGroupCommand$ConsumerGroupService.$anonfun$describeCons
+umerGroups$1(ConsumerGroupCommand.scala:543)
+	at scala.collection.StrictOptimizedMapOps.map(StrictOptimizedMapOps.scala:28)
+	at scala.collection.StrictOptimizedMapOps.map$(StrictOptimizedMapOps.scala:27)
+	at scala.collection.convert.JavaCollectionWrappers$AbstractJMapWrapper.map(Jav
+aCollectionWrappers.scala:313)
+	at kafka.admin.ConsumerGroupCommand$ConsumerGroupService.describeConsumerGroup
+s(ConsumerGroupCommand.scala:542)
+	at kafka.admin.ConsumerGroupCommand$ConsumerGroupService.collectGroupsOffsets(
+ConsumerGroupCommand.scala:558)
+	at kafka.admin.ConsumerGroupCommand$ConsumerGroupService.describeGroups(Consum
+erGroupCommand.scala:367)
+	at kafka.admin.ConsumerGroupCommand$.run(ConsumerGroupCommand.scala:72)
+	at kafka.admin.ConsumerGroupCommand$.main(ConsumerGroupCommand.scala:59)
+	at kafka.admin.ConsumerGroupCommand.main(ConsumerGroupCommand.scala)
+Caused by: org.apache.kafka.common.errors.TimeoutException: 
+Call(callName=describeGroups(api=FIND_COORDINATOR), deadlineMs=1784151789254, 
+tries=5304, nextAllowedTryMs=1784151789366) timed out at 1784151789266 after 
+5304 attempt(s)
+Caused by: org.apache.kafka.common.errors.DisconnectException: Cancelled 
+describeGroups(api=FIND_COORDINATOR) request with correlation id 5306 due to 
+node 1 being disconnected

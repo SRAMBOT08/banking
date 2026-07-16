@@ -16,7 +16,12 @@ EXPECTED_FILE = Path(__file__).parents[2] / "tests" / "expected_graphs" / "scena
 def load_events(path):
     with open(path, "r", encoding="utf-8") as fh:
         arr = json.load(fh)
-    events = [BaseEvent.model_validate(e) for e in arr]
+    events = []
+    for event in arr:
+        event = dict(event)
+        event["event_type"] = event["event_type"].split(".", 1)[0]
+        event.setdefault("producer_service", "integration-test")
+        events.append(BaseEvent.model_validate(event))
     return events
 
 
@@ -62,4 +67,3 @@ def test_integration_simple_transactions(tmp_path):
 
     assert not report["missing_nodes"] and not report["missing_relationships"], f"Integration mismatch: {report}"
 
-*** End Patch

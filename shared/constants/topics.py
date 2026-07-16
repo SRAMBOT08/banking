@@ -7,4 +7,10 @@ TOPICS = {
     "EXECUTION_REQUESTS": "execution.requests.v1",
     "EXECUTION_STATUS": "execution.status.v1",
     "AUDIT_EVENTS": "audit.events.v1",
+    "NORMALIZED_EVENTS": "normalized-events.v1",
+    "INVESTIGATION_CANDIDATES": "investigation.candidates.v1",
+    "INVESTIGATION_COMPLETED": "investigation.completed.v1",
+    "CASE_CREATED": "case.created.v1",
+    "REPORT_GENERATED": "report.generated.v1",
+    "EXECUTION_COMPLETED": "execution.completed.v1",
 }

@@ -8,6 +8,9 @@ from app.engine.confidence import propagate_confidence
 from app.engine.explainability import explain_match
 from app.models.candidate import InvestigationCandidate
 from app.repositories.candidates_repo import InMemoryCandidatesRepo
+from app.api.query_routes import create_query_router
+from app.query.in_memory import InMemoryThreatRepository
+from app.query.service import ThreatQueryService
 import json
 
 logger = get_logger("threat-intel")
@@ -19,6 +22,8 @@ registry.load()
 producer = KafkaProducerWrapper()
 consumer = KafkaConsumerWrapper(settings.consumer_topic)
 candidates_repo = InMemoryCandidatesRepo()
+query_service = ThreatQueryService(InMemoryThreatRepository(registry, candidates_repo))
+app.include_router(create_query_router(query_service))
 
 
 async def handle(msg):

@@ -177,6 +177,8 @@ class ServiceNowAdapterService:
         return results
 
     def _extract_tasks(self, event: Dict[str, Any]) -> List[ExecutionTask]:
+        if isinstance(event.get("result"), dict):
+            event = {**event, **event["result"]}
         if "operation" in event:
             return [ExecutionTask.model_validate(event)]
         if "task" in event:

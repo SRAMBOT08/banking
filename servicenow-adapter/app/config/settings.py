@@ -22,9 +22,10 @@ class AdapterSettings(BaseSettings):
 
     kafka_bootstrap_servers: str = Field("localhost:9092", alias="KAFKA_BOOTSTRAP_SERVERS")
     kafka_consumer_group: str = Field("servicenow-adapter-group", alias="SERVICENOW_ADAPTER_CONSUMER_GROUP")
-    execution_ready_topic: str = Field("execution.ready.v1", alias="EXECUTION_READY_TOPIC")
+    execution_ready_topic: str = Field("execution.completed.v1", alias="EXECUTION_READY_TOPIC")
     execution_started_topic: str = Field("execution.started.v1", alias="EXECUTION_STARTED_TOPIC")
     execution_completed_topic: str = Field("execution.completed.v1", alias="EXECUTION_COMPLETED_TOPIC")
+    adapter_completed_topic: str = Field("execution.completed.v1", alias="EXECUTION_SERVICENOW_COMPLETED_TOPIC")
     execution_failed_topic: str = Field("execution.failed.v1", alias="EXECUTION_FAILED_TOPIC")
     execution_verified_topic: str = Field("execution.verified.v1", alias="EXECUTION_VERIFIED_TOPIC")
 

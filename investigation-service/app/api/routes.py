@@ -36,6 +36,14 @@ def _publish_transition(investigation):
     _publisher.publish_investigation(settings.updated_topic, "INVESTIGATION_UPDATED", investigation, timestamp)
     if investigation.state == InvestigationState.CLOSED:
         _publisher.publish_investigation(settings.closed_topic, "INVESTIGATION_CLOSED", investigation, timestamp)
+        publish_completed = getattr(_publisher, "publish_completed", None)
+        if publish_completed:
+            context = _context.build(investigation)
+            try:
+                snapshot = _snapshots.latest(investigation.investigation_id)
+            except (KeyError, AttributeError):
+                snapshot = None
+            publish_completed(settings.completed_topic, investigation, context, snapshot)
     elif investigation.state == InvestigationState.ESCALATED:
         _publisher.publish_investigation(settings.escalated_topic, "INVESTIGATION_ESCALATED", investigation, timestamp)
 
@@ -50,6 +58,17 @@ def _get(investigation_id: str):
 @router.get("/health", response_model=HealthResponse)
 async def health() -> dict:
     return {"status": "ok", "service": "investigation-service"}
+
+
+@router.get("/live")
+async def live() -> dict:
+    return {"status": "ok", "service": "investigation-service"}
+
+
+@router.get("/ready")
+async def ready() -> dict:
+    return {"status": "ready", "service": "investigation-service",
+            "configured": _manager is not None and _publisher is not None}
 
 
 @router.get("/metrics", response_model=MetricsResponse)

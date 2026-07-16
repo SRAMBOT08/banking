@@ -13,6 +13,8 @@ class Settings(BaseSettings):
     consumer_group: str = Field("execution-decision-service-group", alias="EXECUTION_CONSUMER_GROUP")
 
     investigation_completed_topic: str = Field("investigation.completed.v1", alias="INVESTIGATION_COMPLETED_TOPIC")
+    report_generated_topic: str = Field("report.generated.v1", alias="REPORT_GENERATED_TOPIC")
+    report_dlq_topic: str = Field("report.generated.dlq.v1", alias="REPORT_DLQ_TOPIC")
     plan_created_topic: str = Field("execution.plan.created.v1", alias="EXECUTION_PLAN_CREATED_TOPIC")
     policy_checked_topic: str = Field("execution.policy.checked.v1", alias="EXECUTION_POLICY_CHECKED_TOPIC")
     awaiting_approval_topic: str = Field("execution.awaiting.approval.v1", alias="EXECUTION_AWAITING_APPROVAL_TOPIC")

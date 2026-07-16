@@ -13,11 +13,12 @@ from app.events import BaseEvent
 def make_event():
     ev = BaseEvent.model_validate({
         "event_id": str(uuid4()),
-        "event_type": "test.event",
+        "event_type": "evidence",
         "event_version": "1",
         "timestamp": datetime.utcnow().isoformat() + "Z",
         "tenant_id": "t1",
         "source_id": "s1",
+        "producer_service": "test",
         "metadata": {"user_id": "u1", "ip": "1.2.3.4", "account_id": "a1"},
     })
     return ev
@@ -35,4 +36,3 @@ def test_extract_resolve_build_graph():
     assert len(repo.nodes) >= 1
     assert len(repo.relationships) >= 0
 
-*** End Patch

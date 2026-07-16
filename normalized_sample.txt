@@ -1,0 +1,23 @@
+﻿docker : [2026-07-15 21:49:03,011] WARN [Consumer clientId=console-consumer, 
+groupId=console-consumer-76656] Connection to node 1 (kafka/172.18.0.8:9092) 
+could not be established. Broker may not be available. 
+(org.apache.kafka.clients.NetworkClient)
+At line:1 char:1
++ docker exec banking-kafka-1 kafka-console-consumer --bootstrap-server ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ([2026-07-15 21:....NetworkClient) 
+   :String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+[2026-07-15 21:49:03,111] WARN [Consumer clientId=console-consumer, 
+groupId=console-consumer-76656] Connection to node 1 (kafka/172.18.0.8:9092) 
+could not be established. Broker may not be available. 
+(org.apache.kafka.clients.NetworkClient)
+[2026-07-15 21:49:03,313] WARN [Consumer clientId=console-consumer, 
+groupId=console-consumer-76656] Connection to node 1 (kafka/172.18.0.8:9092) 
+could not be established. Broker may not be available. 
+(org.apache.kafka.clients.NetworkClient)
+[2026-07-15 21:49:03,717] WARN [Consumer clientId=console-consumer, 
+groupId=console-consumer-76656] Connection to node 1 (kafka/172.18.0.8:9092) 
+could not be established. Broker may not be available. 
+(org.apache.kafka.clients.NetworkClient)

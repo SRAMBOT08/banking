@@ -1,0 +1,37 @@
+﻿docker : INFO:     Started server process [1]
+At line:1 char:1
++ docker logs banking-ingestion-service-1 --tail 200 2>&1 | Out-File -F ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (INFO:     Started server process  
+   [1]:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+{"asctime": "2026-07-15 21:34:08,095", "levelname": "INFO", "name": "main", "message": "startup", "service": "ingestion-service"}
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8100 (Press CTRL+C to quit)
+INFO:     127.0.0.1:50732 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42394 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57490 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50838 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38060 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57600 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38370 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47154 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51444 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41272 - "GET /health HTTP/1.1" 200 OK
+{"asctime": "2026-07-15 21:39:08,073", "levelname": "ERROR", "name": "kafka_client", "message": "kafka_error", "error": "KafkaError{code=UNKNOWN_TOPIC_OR_PART,val=3,str=\"Subscribed topic not available: security-events.v1: Broker: Unknown topic or partition\"}"}
+{"asctime": "2026-07-15 21:39:08,074", "levelname": "ERROR", "name": "kafka_client", "message": "kafka_error", "error": "KafkaError{code=UNKNOWN_TOPIC_OR_PART,val=3,str=\"Subscribed topic not available: threat-events.v1: Broker: Unknown topic or partition\"}"}
+{"asctime": "2026-07-15 21:39:08,074", "levelname": "ERROR", "name": "kafka_client", "message": "kafka_error", "error": "KafkaError{code=UNKNOWN_TOPIC_OR_PART,val=3,str=\"Subscribed topic not available: transaction-events.v1: Broker: Unknown topic or partition\"}"}
+{"asctime": "2026-07-15 21:39:08,074", "levelname": "ERROR", "name": "kafka_client", "message": "kafka_error", "error": "KafkaError{code=UNKNOWN_TOPIC_OR_PART,val=3,str=\"Subscribed topic not available: fraud-events.v1: Broker: Unknown topic or partition\"}"}
+{"asctime": "2026-07-15 21:39:08,075", "levelname": "ERROR", "name": "kafka_client", "message": "kafka_error", "error": "KafkaError{code=UNKNOWN_TOPIC_OR_PART,val=3,str=\"Subscribed topic not available: identity-events.v1: Broker: Unknown topic or partition\"}"}
+{"asctime": "2026-07-15 21:39:08,076", "levelname": "ERROR", "name": "kafka_client", "message": "kafka_error", "error": "KafkaError{code=UNKNOWN_TOPIC_OR_PART,val=3,str=\"Subscribed topic not available: asset-events.v1: Broker: Unknown topic or partition\"}"}
+INFO:     127.0.0.1:52572 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34900 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50076 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41824 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58616 - "GET /health HTTP/1.1" 200 OK
+INFO:     172.18.0.1:49118 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40516 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49844 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40044 - "GET /health HTTP/1.1" 200 OK

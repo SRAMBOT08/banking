@@ -1,0 +1,44 @@
+﻿docker : INFO:     Started server process [1]
+At line:1 char:1
++ docker logs banking-evidence-service-1 --tail 200 2>&1 | Out-File -Fi ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (INFO:     Started server process  
+   [1]:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8200 (Press CTRL+C to quit)
+{"asctime": "2026-07-15 21:31:15,442", "levelname": "INFO", "name": "main", "message": "startup", "service": "evidence-service"}
+INFO:     127.0.0.1:43860 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45586 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33840 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58840 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40256 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49848 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36550 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36950 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58206 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41552 - "GET /health HTTP/1.1" 200 OK
+{"asctime": "2026-07-15 21:36:15,413", "levelname": "ERROR", "name": "kafka_client", "message": "kafka_error", "error": "KafkaError{code=UNKNOWN_TOPIC_OR_PART,val=3,str=\"Subscribed topic not available: normalized-events.v1: Broker: Unknown topic or partition\"}"}
+INFO:     127.0.0.1:34196 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58656 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35926 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34870 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40922 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57632 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33216 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50348 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44808 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40870 - "GET /health HTTP/1.1" 200 OK
+INFO:     172.18.0.1:51286 - "GET /api/v1/debug/graph HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53366 - "GET /health HTTP/1.1" 200 OK
+INFO:     172.18.0.1:51286 - "GET /ready HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46474 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34794 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38998 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60748 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54286 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43220 - "GET /health HTTP/1.1" 200 OK
+INFO:     172.18.0.1:37560 - "GET /api/v1/debug/graph HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39562 - "GET /health HTTP/1.1" 200 OK

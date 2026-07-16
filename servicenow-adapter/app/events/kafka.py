@@ -25,7 +25,7 @@ class AdapterEventPublisher:
         self.publish(self.settings.execution_started_topic, key, payload)
 
     def publish_completed(self, payload: dict[str, Any], key: str) -> None:
-        self.publish(self.settings.execution_completed_topic, key, payload)
+        self.publish(self.settings.adapter_completed_topic, key, {**payload, "_adapter_origin": self.settings.service_name})
 
     def publish_failed(self, payload: dict[str, Any], key: str) -> None:
         self.publish(self.settings.execution_failed_topic, key, payload)
@@ -43,6 +43,7 @@ class ReadyTaskConsumer:
                 "bootstrap.servers": settings.kafka_bootstrap_servers,
                 "group.id": settings.kafka_consumer_group,
                 "auto.offset.reset": "earliest",
+                "enable.auto.commit": False,
             }
         )
         self.running = False
@@ -63,8 +64,20 @@ class ReadyTaskConsumer:
                 if message.error().code() != KafkaError._PARTITION_EOF:
                     continue
                 continue
-            payload = json.loads(message.value().decode())
-            await self.handler(payload)
+            for attempt in range(1, 4):
+                try:
+                    payload = json.loads(message.value().decode())
+                    if payload.get("_adapter_origin") == self.settings.service_name:
+                        self.consumer.commit(message=message, asynchronous=False)
+                        break
+                    await self.handler(payload)
+                    self.consumer.commit(message=message, asynchronous=False)
+                    break
+                except Exception:
+                    if attempt == 3:
+                        self.consumer.commit(message=message, asynchronous=False)
+                    else:
+                        await asyncio.sleep(2 ** (attempt - 1))
 
     async def stop(self) -> None:
         self.running = False

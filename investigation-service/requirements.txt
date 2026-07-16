@@ -2,6 +2,7 @@ fastapi
 uvicorn[standard]
 pydantic
 pydantic-settings
+langgraph
 confluent-kafka
 python-json-logger
 pytest

@@ -22,12 +22,21 @@ services:
       - KAFKA_LISTENERS=PLAINTEXT://:9092
       - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092
       - KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE=true
+      - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
+      - KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=1
+      - KAFKA_TRANSACTION_STATE_LOG_MIN_ISR=1
+      - KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS=0
     depends_on:
       - zookeeper
     networks:
       - sentinel_net
     volumes:
       - kafka_data:/bitnami
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:9092 >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
 
   redis:
     image: redis:7-alpine
@@ -39,7 +48,7 @@ services:
   neo4j:
     image: neo4j:5
     environment:
-      - NEO4J_AUTH=neo4j/test
+      - NEO4J_AUTH=neo4j/testpassword
     networks:
       - sentinel_net
     volumes:
@@ -61,10 +70,24 @@ services:
       context: .
       dockerfile: gateway/Dockerfile
     depends_on: [kafka, postgres]
+    environment:
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - SIMULATOR_SERVICE_URL=http://event-simulator:8900
+      - INVESTIGATION_SERVICE_URL=http://investigation-service:8500
+      - CASE_SERVICE_URL=http://case-service:8950
+      - REPORT_SERVICE_URL=http://ai-report-service:8960
+      - EXECUTION_SERVICE_URL=http://execution-service:8700
+      - GRAPH_SERVICE_URL=http://graph-service:8010
+      - SERVICENOW_SERVICE_URL=http://servicenow-adapter:8800
     networks:
       - sentinel_net
     ports:
       - "8000:8000"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')\""]
+      interval: 10s
+      timeout: 5s
+      retries: 12
 
   ingestion-service:
     build:
@@ -83,6 +106,23 @@ services:
     ports:
       - "8100:8100"
 
+  event-simulator:
+    build:
+      context: .
+      dockerfile: event-simulator/Dockerfile
+    environment:
+      - SERVICE_NAME=event-simulator
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - EVENT_TOPIC=events.unified.v1
+      - SIMULATOR_TRANSPORT=kafka
+      - SIMULATOR_API_PORT=8900
+    depends_on:
+      - kafka
+    networks:
+      - sentinel_net
+    ports:
+      - "8900:8900"
+
   evidence-service:
     build:
       context: .
@@ -90,6 +130,10 @@ services:
     environment:
       - SERVICE_NAME=evidence-service
       - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - NORMALIZED_TOPIC=normalized-events.v1
+      - EVIDENCE_GRAPH_TOPIC=evidence.graph.events.v1
+      - DLQ_TOPIC=normalized-events.dlq.v1
+      - CONSUMER_GROUP=evidence-service-group
     depends_on:
       - kafka
       - neo4j
@@ -100,9 +144,11 @@ services:
 
   attack-knowledge-service:
     build:
-      context: ./attack-knowledge-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: attack-knowledge-service/Dockerfile
     environment:
+      - SERVICE_NAME=attack-knowledge-service
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
       - CONSUMER_TOPIC=evidence.graph.events.v1
       - PRODUCER_TOPIC=investigation.candidates.v1
     depends_on:
@@ -115,9 +161,11 @@ services:
 
   threat-intelligence-service:
     build:
-      context: ./threat-intelligence-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: threat-intelligence-service/Dockerfile
     environment:
+      - SERVICE_NAME=threat-intelligence-service
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
       - CONSUMER_TOPIC=evidence.graph.events.v1
       - PRODUCER_TOPIC=investigation.candidates.v1
     depends_on:
@@ -134,22 +182,106 @@ services:
     networks:
       - sentinel_net
 
+  graph-service:
+    build:
+      context: .
+      dockerfile: graph-service/Dockerfile
+    environment:
+      - SERVICE_NAME=graph-intelligence-service
+    depends_on:
+      - neo4j
+    networks:
+      - sentinel_net
+    ports:
+      - "8010:8010"
+
+  memory-service:
+    build:
+      context: .
+      dockerfile: memory-service/Dockerfile
+    environment:
+      - SERVICE_NAME=investigation-memory-service
+    networks:
+      - sentinel_net
+    ports:
+      - "8020:8020"
+
   investigation-service:
     build:
-      context: ./investigation-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: investigation-service/Dockerfile
     environment:
       - SERVICE_NAME=investigation-service
       - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
       - CONSUMER_TOPIC=investigation.candidates.v1
       - PRODUCER_TOPIC=investigation.active.v1
       - CONSUMER_GROUP=investigation-service-group
+      - COMPLETED_TOPIC=investigation.completed.v1
     depends_on:
       - kafka
     networks:
       - sentinel_net
     ports:
       - "8500:8500"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8500/health')\""]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  case-service:
+    build:
+      context: .
+      dockerfile: case-service/Dockerfile
+    environment:
+      - SERVICE_NAME=case-service
+      - CASE_SERVICE_PORT=8950
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - INVESTIGATION_COMPLETED_TOPIC=investigation.completed.v1
+      - CASE_CREATED_TOPIC=case.created.v1
+    depends_on:
+      investigation-service:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - sentinel_net
+    ports:
+      - "8950:8950"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8950/health')\""]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  ai-report-service:
+    build:
+      context: .
+      dockerfile: ai-report-service/Dockerfile
+    environment:
+      - SERVICE_NAME=ai-report-service
+      - AI_REPORT_SERVICE_PORT=8960
+      - NIM_ENDPOINT=${NIM_ENDPOINT:-http://nim:8000/v1/chat/completions}
+      - NIM_MODEL=${NIM_MODEL:-meta/llama-3.1-70b-instruct}
+      - NIM_API_KEY=${NIM_API_KEY:-}
+      - REPORT_PROVIDER=${REPORT_PROVIDER:-mock}
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - CASE_CREATED_TOPIC=case.created.v1
+      - REPORT_GENERATED_TOPIC=report.generated.v1
+    depends_on:
+      case-service:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - sentinel_net
+    ports:
+      - "8960:8960"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8960/health')\""]
+      interval: 10s
+      timeout: 5s
+      retries: 12
 
   ai-service:
     build:
@@ -167,8 +299,10 @@ services:
       - AI_CONSUMER_GROUP=ai-investigation-service-group
       - LLM_PROVIDER=mock
     depends_on:
-      - kafka
-      - investigation-service
+      kafka:
+        condition: service_healthy
+      investigation-service:
+        condition: service_healthy
     networks:
       - sentinel_net
     ports:
@@ -176,8 +310,8 @@ services:
 
   execution-service:
     build:
-      context: ./execution-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: execution-service/Dockerfile
     environment:
       - EXECUTION_SERVICE_NAME=execution-decision-service
       - EXECUTION_API_PORT=8700
@@ -187,20 +321,28 @@ services:
       - EXECUTION_POLICY_CHECKED_TOPIC=execution.policy.checked.v1
       - EXECUTION_AWAITING_APPROVAL_TOPIC=execution.awaiting.approval.v1
       - EXECUTION_APPROVED_TOPIC=execution.approved.v1
-      - EXECUTION_READY_TOPIC=execution.ready.v1
+      - EXECUTION_READY_TOPIC=execution.completed.v1
       - EXECUTION_STARTED_TOPIC=execution.started.v1
       - EXECUTION_COMPLETED_TOPIC=execution.completed.v1
+      - REPORT_GENERATED_TOPIC=report.generated.v1
+      - REPORT_DLQ_TOPIC=report.generated.dlq.v1
       - EXECUTION_FAILED_TOPIC=execution.failed.v1
       - EXECUTION_CANCELLED_TOPIC=execution.cancelled.v1
       - EXECUTION_VERIFIED_TOPIC=execution.verified.v1
       - EXECUTION_AUDIT_TOPIC=execution.audit.v1
       - EXECUTION_CONSUMER_GROUP=execution-decision-service-group
     depends_on:
-      - kafka
+      kafka:
+        condition: service_healthy
     networks:
       - sentinel_net
     ports:
       - "8700:8700"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8700/health')\""]
+      interval: 10s
+      timeout: 5s
+      retries: 12
 
   servicenow-adapter:
     build:
@@ -221,27 +363,46 @@ services:
       - SERVICENOW_RETRY_MAX_DELAY_MS=5000
       - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
       - SERVICENOW_ADAPTER_CONSUMER_GROUP=servicenow-adapter-group
-      - EXECUTION_READY_TOPIC=execution.ready.v1
+      - EXECUTION_READY_TOPIC=execution.completed.v1
       - EXECUTION_STARTED_TOPIC=execution.started.v1
       - EXECUTION_COMPLETED_TOPIC=execution.completed.v1
       - EXECUTION_FAILED_TOPIC=execution.failed.v1
       - EXECUTION_VERIFIED_TOPIC=execution.verified.v1
+      - EXECUTION_SERVICENOW_COMPLETED_TOPIC=execution.servicenow.completed.v1
       - SERVICENOW_ADAPTER_AUDIT_LOG_PATH=/app/audit/execution_audit.jsonl
     depends_on:
-      - kafka
-      - execution-service
+      kafka:
+        condition: service_healthy
+      execution-service:
+        condition: service_healthy
     networks:
       - sentinel_net
     ports:
       - "8800:8800"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8800/health')\""]
+      interval: 10s
+      timeout: 5s
+      retries: 12
 
   frontend:
-    image: node:18-alpine
-    command: sleep 3600
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    environment:
+      - NEXT_PUBLIC_GATEWAY_URL=${NEXT_PUBLIC_GATEWAY_URL:-http://localhost:8000}
+    depends_on:
+      gateway:
+        condition: service_started
     ports:
-      - 5173:5173
+      - "3000:3000"
     networks:
       - sentinel_net
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O- http://127.0.0.1:3000 >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
 
   test-runner:
     build:

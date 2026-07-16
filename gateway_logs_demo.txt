@@ -1,0 +1,25 @@
+﻿INFO:     127.0.0.1:51812 - "GET /health HTTP/1.1" 200 OK
+docker : INFO:     Started server process [1]
+At line:1 char:1
++ docker logs banking-gateway-1 --tail 80 2>&1 | Out-File -FilePath .\g ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (INFO:     Started server process  
+   [1]:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+%3|1784152668.895|FAIL|rdkafka#producer-1| [thrd:localhost:9092/bootstrap]: 
+localhost:9092/bootstrap: Connect to ipv4#127.0.0.1:9092 failed: Connection 
+refused (after 1ms in state CONNECT)
+%3|1784152668.944|FAIL|rdkafka#producer-1| [thrd:localhost:9092/bootstrap]: 
+localhost:9092/bootstrap: Connect to ipv4#127.0.0.1:9092 failed: Connection 
+refused (after 0ms in state CONNECT, 1 identical error(s) suppressed)
+%4|1784152673.910|TERMINATE|rdkafka#producer-1| [thrd:app]: Producer 
+terminating with 1 message (933 bytes) still in queue or transit: use flush() 
+to wait for outstanding message delivery
+{"asctime": "2026-07-15 21:57:53,909", "levelname": "INFO", "name": "gateway_proxy", "message": "demo_candidate_published", "candidate_id": "demo-candidate-cced37e4-2949-4494-826b-7398f8680538", "simulation_id": "cced37e4-2949-4494-826b-7398f8680538", "scenario": "account_takeover"}
+INFO:     172.18.0.1:36708 - "POST /api/v1/simulations/run HTTP/1.1" 202 Accepted
+INFO:     127.0.0.1:42442 - "GET /health HTTP/1.1" 200 OK
+INFO:     172.18.0.1:44568 - "GET /api/v1/investigations HTTP/1.1" 200 OK

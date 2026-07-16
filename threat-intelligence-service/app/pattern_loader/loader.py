@@ -21,7 +21,11 @@ def load_yaml_patterns(dirpath: str = None) -> Dict[str, Dict]:
         with open(path, 'r', encoding='utf-8') as fh:
             doc = yaml.safe_load(fh)
             name = doc.get('name') or os.path.splitext(fn)[0]
-            patterns[name] = doc
+            version = str(doc.get('version') or '0')
+            # Keep every registered version; using only the pattern name here
+            # silently discarded earlier versions before the registry could
+            # apply semantic version ordering.
+            patterns[f"{name}:{version}"] = doc
             logger.info("pattern_loaded", extra={"pattern": name, "file": fn})
     return patterns
 

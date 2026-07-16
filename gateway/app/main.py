@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Request, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 import httpx
 import json
 from app.core.logger import get_logger
@@ -6,10 +7,22 @@ from app.config.settings import settings
 from app.infrastructure.kafka_client import KafkaProducerWrapper
 
 from shared.sentineliq_shared.events.base import BaseEvent
+from app.api.proxy_routes import router as proxy_router
 
 logger = get_logger("gateway")
 
 app = FastAPI(title="SentinelIQ Gateway")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+app.include_router(proxy_router)
 
 
 @app.get("/health")

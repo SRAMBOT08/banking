@@ -1,0 +1,15 @@
+﻿docker : INFO:     Started server process [1]
+At line:1 char:1
++ docker logs banking-gateway-1 --tail 80 2>&1 | Out-File -FilePath .\g ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (INFO:     Started server process  
+   [1]:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:54502 - "GET /health HTTP/1.1" 200 OK
+{"asctime": "2026-07-15 22:00:11,869", "levelname": "INFO", "name": "gateway_proxy", "message": "demo_candidate_published", "candidate_id": "demo-candidate-08ca45f0-6f2c-48d1-bebd-90d849ff07f2", "simulation_id": "08ca45f0-6f2c-48d1-bebd-90d849ff07f2", "scenario": "account_takeover"}
+INFO:     172.18.0.1:40192 - "POST /api/v1/simulations/run HTTP/1.1" 202 Accepted
+INFO:     127.0.0.1:56930 - "GET /health HTTP/1.1" 200 OK

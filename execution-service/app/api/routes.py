@@ -24,6 +24,11 @@ async def ready(request: Request):
     return {"status": "ready", "service": request.app.state.settings.service_name}
 
 
+@router.get("/live")
+async def live(request: Request):
+    return {"status": "ok", "service": request.app.state.settings.service_name}
+
+
 @router.get("/execution/plans")
 async def list_plans(request: Request):
     return {"plans": [plan.model_dump(mode="json") for plan in request.app.state.repository.list_plans()]}

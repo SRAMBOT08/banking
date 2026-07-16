@@ -20,6 +20,12 @@ from .domain import (
     PolicyStatus,
     VerificationStatus,
 )
+from .case_execution import (
+    AdapterOperation, ApprovalRecord, ApprovalStatus as CaseApprovalStatus,
+    AuditRecord, CaseFileInput, ExecutionAction, ExecutionPlan as CaseExecutionPlan,
+    ExecutionStatus, ExecutionStatusView, FrozenModel, PolicyDecision as CasePolicyDecision,
+    PolicyOutcome,
+)
 
 __all__ = [
     "ApprovalDecision",
@@ -42,4 +48,7 @@ __all__ = [
     "PolicyDecision",
     "PolicyStatus",
     "VerificationStatus",
+    "AdapterOperation", "ApprovalRecord", "CaseApprovalStatus", "AuditRecord",
+    "CaseFileInput", "CaseExecutionPlan", "ExecutionAction", "ExecutionStatus",
+    "ExecutionStatusView", "FrozenModel", "CasePolicyDecision", "PolicyOutcome",
 ]

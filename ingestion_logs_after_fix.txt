@@ -1,0 +1,17 @@
+﻿{"asctime": "2026-07-15 21:44:34,152", "levelname": "INFO", "name": "main", "message": "startup", "service": "ingestion-service"}
+INFO:     127.0.0.1:36592 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34492 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40452 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36092 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44294 - "GET /health HTTP/1.1" 200 OK
+docker : INFO:     Started server process [1]
+At line:1 char:1
++ docker logs banking-ingestion-service-1 --tail 200 2>&1 | Out-File -F ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (INFO:     Started server process  
+   [1]:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8100 (Press CTRL+C to quit)

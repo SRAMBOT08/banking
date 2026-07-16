@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from copy import deepcopy
+
 from typing import Tuple
 
 from app.core.logger import get_logger
@@ -10,9 +12,10 @@ logger = get_logger("normalizer")
 
 def normalize(payload_dict: dict, original_raw: bytes) -> BaseEvent:
     """Return a canonical BaseEvent preserving original payload and identifiers."""
-    # Ensure we keep original payload in metadata
+    # Ensure we keep original payload in metadata without creating a recursive structure.
+    original_payload = deepcopy(payload_dict)
     payload_dict.setdefault("metadata", {})
-    payload_dict["metadata"].setdefault("original_payload", payload_dict.copy())
+    payload_dict["metadata"].setdefault("original_payload", original_payload)
 
     # Build BaseEvent instance
     try:

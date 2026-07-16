@@ -12,6 +12,17 @@ async def health(request: Request):
     return (await request.app.state.health_service.check()).model_dump(mode="json")
 
 
+@router.get("/live")
+async def live(request: Request):
+    return {"status": "ok", "service": request.app.state.settings.service_name}
+
+
+@router.get("/ready")
+async def ready(request: Request):
+    return {"status": "ready", "service": request.app.state.settings.service_name,
+            "consumer_started": bool(request.app.state.consumer and request.app.state.consumer.running)}
+
+
 @router.post("/dry-run", response_model=DryRunResponse)
 async def dry_run(request: Request, payload: DryRunRequest):
     try:
