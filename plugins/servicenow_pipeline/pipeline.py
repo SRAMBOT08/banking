@@ -61,6 +61,14 @@ class ServiceNowPipeline:
         try:
             execution_result = self.execute_create_incident(request, correlation_id=corr_id)
             verification_result = self.verifier.verify_creation(execution_result, correlation_id=corr_id)
+            # Propagate incident identifiers to the verification result
+            if verification_result.verified:
+                verification_result = VerificationResult(
+                    verified=True,
+                    message=verification_result.message,
+                    incident_number=execution_result.incident_number,
+                    sys_id=execution_result.sys_id,
+                )
             log_stage(
                 logger,
                 stage="pipeline_completion",

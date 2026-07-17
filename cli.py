@@ -968,18 +968,17 @@ def _prepare_deferred_agent_startup() -> None:
             "plugin discovery failed at deferred CLI startup",
             exc_info=True,
         )
+    # Bind ServiceNow pipeline runtime for CLI if plugin is enabled
     try:
-        from hermes_cli.mcp_startup import start_background_mcp_discovery
+        from hermes_cli.config import load_config
+        from plugins.servicenow_pipeline.runtime import bind_cli_runtime
 
-        start_background_mcp_discovery(
-            logger=logger,
-            thread_name="termux-cli-mcp-discovery",
-        )
+        config = load_config()
+        enabled = config.get("plugins", {}).get("enabled", [])
+        if "servicenow_pipeline" in enabled or "servicenow-pipeline" in enabled:
+            bind_cli_runtime(config)
     except Exception:
-        logger.debug(
-            "MCP tool discovery failed at deferred CLI startup",
-            exc_info=True,
-        )
+        logger.debug("ServiceNow CLI runtime binding skipped", exc_info=True)
     try:
         from agent.shell_hooks import register_from_config
         from hermes_cli.config import load_config
@@ -15922,6 +15921,13 @@ def main(
         pass_session_id=pass_session_id,
         ignore_rules=ignore_rules,
     )
+
+    # Bind ServiceNow runtime if plugin is enabled
+    try:
+        from plugins.servicenow_pipeline.runtime import bind_cli_runtime
+        bind_cli_runtime(CLI_CONFIG)
+    except Exception:
+        logger.debug("ServiceNow pipeline runtime not available or disabled", exc_info=True)
 
     if parsed_skills:
         skills_prompt, loaded_skills, missing_skills = build_preloaded_skills_prompt(

@@ -74,3 +74,5 @@ class VerificationResult:
 
     verified: bool
     message: str
+    incident_number: Optional[str] = None
+    sys_id: Optional[str] = None

@@ -1,14 +1,15 @@
 """Runtime wiring for the ServiceNow capability.
 
-This module mirrors the Teams runtime pattern at the composition boundary:
-it builds a ready-to-use pipeline instance from injected dependencies and
-keeps all business logic outside the runtime layer.
+This module provides a long-lived ServiceNow runtime that is created once at
+startup (either during gateway initialization or CLI startup) and reused for
+all tool invocations. This follows Hermes' native lifecycle where expensive
+resources are initialized once and shared across the process lifetime.
 """
 
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, Optional
 
 from plugins.servicenow_pipeline.incidents import IncidentService
 from plugins.servicenow_pipeline.payload_builder import PayloadBuilder
@@ -21,8 +22,15 @@ from plugins.servicenow_pipeline.store import ServiceNowPipelineStore, resolve_t
 from plugins.servicenow_pipeline.table_executor import TableExecutor
 from plugins.servicenow_pipeline.verifier import ExecutionVerifier
 from plugins.servicenow_pipeline.tracing import elapsed_ms, log_stage, new_correlation_id, now
+from plugins.servicenow_pipeline.models import IncidentRequest, VerificationResult
 
 logger = logging.getLogger(__name__)
+
+# Module-level singleton for the ServiceNow runtime.
+# Initialized once at startup via bind_gateway_runtime() or bind_cli_runtime().
+_runtime: Optional[ServiceNowPipeline] = None
+_runtime_error: Optional[str] = None
+_runtime_config: dict[str, Any] = {}
 
 
 def _read_section(config: Any, *keys: str) -> dict[str, Any]:
@@ -78,31 +86,37 @@ def _build_client_config(runtime_config: dict[str, Any]) -> ServiceNowClientConf
     )
 
 
-def build_pipeline_runtime(gateway: Any) -> ServiceNowPipeline:
-    """Create a fully wired ServiceNow pipeline runtime.
+def _create_pipeline() -> ServiceNowPipeline:
+    """Create a fully wired ServiceNow pipeline with all dependencies."""
+    client_config = _build_client_config(_runtime_config)
+    client = ServiceNowClient(client_config)
+    table_executor = TableExecutor(client)
+    payload_builder = PayloadBuilder()
+    incident_service = IncidentService(
+        payload_builder=payload_builder,
+        table_executor=table_executor,
+    )
+    verifier = ExecutionVerifier()
 
-    The runtime composes the dependency chain only. It does not execute any
-    ServiceNow workflow and does not expose REST or business logic.
-    """
-    correlation_id = new_correlation_id()
-    start = now()
-    gateway_config = getattr(gateway, "config", None)
+    pipeline = ServiceNowPipeline(
+        incident_service=incident_service,
+        verifier=verifier,
+    )
+    return pipeline
+
+
+def _bind_runtime_internal(config: Any) -> bool:
+    """Internal method to bind the runtime. Used by both gateway and CLI binders."""
+    global _runtime, _runtime_error, _runtime_config
+
+    if _runtime is not None:
+        return True
+
     try:
-        runtime_config = build_pipeline_runtime_config(gateway_config)
-        client_config = _build_client_config(runtime_config)
-        client = ServiceNowClient(client_config)
-        table_executor = TableExecutor(client)
-        payload_builder = PayloadBuilder()
-        incident_service = IncidentService(
-            payload_builder=payload_builder,
-            table_executor=table_executor,
-        )
-        verifier = ExecutionVerifier()
-
-        pipeline = ServiceNowPipeline(
-            incident_service=incident_service,
-            verifier=verifier,
-        )
+        _runtime_config = build_pipeline_runtime_config(config)
+        correlation_id = new_correlation_id()
+        start = now()
+        runtime = _create_pipeline()
         log_stage(
             logger,
             stage="runtime_initialization",
@@ -111,18 +125,23 @@ def build_pipeline_runtime(gateway: Any) -> ServiceNowPipeline:
             duration_ms=elapsed_ms(start),
             extra={"component": "servicenow_pipeline"},
         )
-        return pipeline
+        _runtime = runtime
+        _runtime_error = None
+        logger.info("ServiceNow pipeline runtime initialized")
+        return True
     except Exception as exc:
+        _runtime_error = str(exc)
+        logger.warning("ServiceNow pipeline runtime unavailable: %s", exc)
         log_stage(
             logger,
             stage="runtime_initialization",
-            correlation_id=correlation_id,
+            correlation_id=new_correlation_id(),
             success=False,
-            duration_ms=elapsed_ms(start),
+            duration_ms=elapsed_ms(now()),
             error=exc,
             extra={"component": "servicenow_pipeline"},
         )
-        raise
+        return False
 
 
 def bind_gateway_runtime(gateway: Any) -> bool:
@@ -131,17 +150,67 @@ def bind_gateway_runtime(gateway: Any) -> bool:
     This mirrors the Teams runtime composition pattern but remains inert if the
     gateway does not expose a compatible ServiceNow integration surface.
     """
-    if getattr(gateway, "_servicenow_pipeline_runtime", None) is not None:
-        return True
+    gateway_config = getattr(gateway, "config", None)
+    bound = _bind_runtime_internal(gateway_config)
+    if bound:
+        gateway._servicenow_pipeline_runtime = _runtime
+        gateway._servicenow_pipeline_runtime_error = None
+        logger.info("ServiceNow pipeline runtime bound to gateway")
+    else:
+        gateway._servicenow_pipeline_runtime_error = _runtime_error
+    return bound
 
-    try:
-        runtime = build_pipeline_runtime(gateway)
-    except Exception as exc:
-        gateway._servicenow_pipeline_runtime_error = str(exc)
-        logger.warning("ServiceNow pipeline runtime unavailable: %s", exc)
-        return False
 
-    gateway._servicenow_pipeline_runtime = runtime
-    gateway._servicenow_pipeline_runtime_error = None
-    logger.info("ServiceNow pipeline runtime bound")
-    return True
+def bind_cli_runtime(config: Any) -> bool:
+    """Bind the ServiceNow runtime for CLI mode.
+
+    Called during CLI startup after plugins are discovered.
+    """
+    bound = _bind_runtime_internal(config)
+    if bound:
+        logger.info("ServiceNow pipeline runtime bound to CLI")
+    return bound
+
+
+def get_runtime() -> ServiceNowPipeline:
+    """Get the initialized ServiceNow runtime.
+
+    Returns:
+        The singleton ServiceNowPipeline instance.
+
+    Raises:
+        RuntimeError: If the runtime has not been initialized.
+    """
+    if _runtime is None:
+        raise RuntimeError(
+            "ServiceNow runtime not initialized. Call bind_gateway_runtime() "
+            "or bind_cli_runtime() first."
+        )
+    return _runtime
+
+
+def get_runtime_error() -> Optional[str]:
+    """Get the last runtime initialization error, if any."""
+    return _runtime_error
+
+
+def is_runtime_ready() -> bool:
+    """Check if the runtime is initialized and ready."""
+    return _runtime is not None
+
+
+def create_incident(request: IncidentRequest) -> VerificationResult:
+    """Create a ServiceNow incident using the singleton runtime.
+
+    This is the primary entry point for tool handlers. It delegates to the
+    runtime's execute() method which orchestrates the full pipeline including
+    verification.
+
+    Args:
+        request: The incident request to create.
+
+    Returns:
+        VerificationResult with verified status, message, and incident identifiers.
+    """
+    runtime = get_runtime()
+    return runtime.execute(request)

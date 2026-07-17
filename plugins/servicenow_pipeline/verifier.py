@@ -98,4 +98,6 @@ class ExecutionVerifier:
         return VerificationResult(
             verified=True,
             message=str(result.message).strip() or "Execution verified successfully.",
+            incident_number=result.incident_number,
+            sys_id=result.sys_id,
         )
