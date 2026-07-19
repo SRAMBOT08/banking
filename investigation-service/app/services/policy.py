@@ -19,7 +19,7 @@ class InvestigationPolicy:
         return investigation.confidence.score >= self.escalation_confidence or investigation.priority == InvestigationPriority.CRITICAL
 
     def should_auto_close(self, investigation: Investigation, now: Optional[datetime] = None) -> bool:
-        if investigation.state not in {InvestigationState.RESOLVED, InvestigationState.ESCALATED}:
+        if investigation.state not in {InvestigationState.DECIDED, InvestigationState.ESCALATED, InvestigationState.APPROVED}:
             return False
         now = now or datetime.now(timezone.utc)
         created = datetime.fromisoformat(investigation.metadata.created_at.replace("Z", "+00:00"))

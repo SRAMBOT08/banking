@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from app.core.logger import get_logger
 from app.config.settings import settings
 from app.repo.inmemory import InMemoryGraphRepo
+from app.repo.neo4j import Neo4jGraphRepository, neo4j_graph_repo
 from app.pipeline.graph_engine import GraphEngine
 from app.infrastructure.kafka_client import KafkaConsumerWrapper
 from app.infrastructure.kafka_client import KafkaEventPublisher
@@ -18,8 +19,8 @@ from app.query.service import EvidenceQueryService
 logger = get_logger("main")
 app = FastAPI(title="evidence-service")
 
-# in-memory repo used for dev and tests; can be swapped for Neo4j-backed repo later
-repo = InMemoryGraphRepo()
+# Use Neo4j-backed repository for graph persistence
+repo = neo4j_graph_repo
 engine = GraphEngine(repo)
 query_service = EvidenceQueryService(InMemoryEvidenceRepository(repo))
 _consumer = None
@@ -34,6 +35,9 @@ async def startup_event():
     global _consumer
     logger.info("startup", extra={"service": settings.service_name})
 
+    # Initialize Neo4j graph repository
+    repo._ensure_driver()
+    
     # start consumer for normalized topic
     _consumer = KafkaConsumerWrapper(settings.normalized_topic, settings.consumer_group,
                                      dlq_topic=settings.dlq_topic)
@@ -81,6 +85,11 @@ async def shutdown_event():
     global _consumer
     if _consumer:
         _consumer.stop()
+    # Close Neo4j connection
+    try:
+        neo4j_graph_repo.close()
+    except Exception as exc:
+        logger.error("neo4j_shutdown_failed", extra={"error": str(exc)})
 
 
 @app.get("/health")

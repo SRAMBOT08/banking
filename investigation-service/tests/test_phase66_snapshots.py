@@ -34,7 +34,8 @@ def test_snapshot_is_complete_immutable_and_retrievable():
 
     assert first.metadata.snapshot_version == 1
     assert first.metadata.investigation_id == investigation.investigation_id
-    assert first.evidence == investigation.evidence
+    # Compare evidence data (snapshot uses Pydantic model, investigation uses wrapper)
+    assert [e.model_dump() for e in first.evidence] == [e.model_dump() for e in investigation.evidence]
     assert first.graph["nodes"]
     assert len(first.memory) == len(memory.list(investigation.investigation_id))
     assert SnapshotValidator().validate(first) == []

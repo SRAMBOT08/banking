@@ -11,3 +11,4 @@ httpx
 # runtime/runtime-deps
 python-json-logger
 pydantic>=2.0
+neo4j

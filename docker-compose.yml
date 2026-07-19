@@ -53,6 +53,9 @@ services:
       - sentinel_net
     volumes:
       - neo4j_data:/data
+    ports:
+      - "7474:7474"
+      - "7687:7687"
 
   postgres:
     image: postgres:15

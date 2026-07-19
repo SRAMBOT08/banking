@@ -20,5 +20,16 @@ class Settings(BaseSettings):
     score_completeness_weight: int = Field(20, alias="SCORE_COMPLETENESS_WEIGHT")
     score_history_weight: int = Field(10, alias="SCORE_HISTORY_WEIGHT")
 
+    # Database settings
+    database_url: str = Field("postgresql://postgres:postgres@localhost:5432/sentinel", alias="DATABASE_URL")
+    database_pool_size: int = Field(10, alias="DATABASE_POOL_SIZE")
+    database_pool_max_overflow: int = Field(20, alias="DATABASE_POOL_MAX_OVERFLOW")
+    database_pool_timeout: int = Field(30, alias="DATABASE_POOL_TIMEOUT")
+
+    # Neo4j settings
+    neo4j_uri: str = Field("bolt://localhost:7687", alias="NEO4J_URI")
+    neo4j_user: str = Field("neo4j", alias="NEO4J_USER")
+    neo4j_password: str = Field("testpassword", alias="NEO4J_PASSWORD")
+
 
 settings = Settings()

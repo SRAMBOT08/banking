@@ -1,0 +1,763 @@
+"""Neo4j graph repository implementation."""
+from __future__ import annotations
+
+import json
+from datetime import datetime
+from datetime import timezone
+from typing import Any, Dict, List, Optional
+
+from neo4j import AsyncDriver, AsyncSession
+from neo4j.exceptions import Neo4jError
+
+from app.graph.client import graph_manager
+from app.graph.models import (
+    GraphNode,
+    GraphRelationship,
+    GraphQueryResult,
+    GraphSearchResult,
+    NodeType,
+    RelationshipType,
+    EntityNode,
+    EvidenceNode,
+    IndicatorNode,
+    AssetNode,
+    AlertNode,
+)
+from app.graph.repository import GraphRepository
+
+
+class Neo4jGraphRepository(GraphRepository):
+    """Neo4j implementation of the GraphRepository interface."""
+
+    def __init__(self, driver: Optional[Any] = None):
+        self._driver = driver
+
+    def _get_driver(self):
+        from app.graph.client import graph_manager
+        return graph_manager.get_driver() or self._driver
+
+    def _node_to_model(self, record: dict, node_type: str) -> Optional[Any]:
+        """Convert a Neo4j node record to a domain model."""
+        if not record:
+            return None
+        
+        node_data = dict(record)
+        
+        # Helper to convert Neo4j DateTime to Python datetime
+        def convert_dt(val):
+            if val is None:
+                return None
+            if hasattr(val, 'to_native'):  # Neo4j DateTime
+                return val.to_native()
+            return val
+        
+        # Parse metadata if it's a JSON string
+        metadata = node_data.get("metadata", {})
+        if isinstance(metadata, str):
+            try:
+                metadata = json.loads(metadata)
+            except json.JSONDecodeError:
+                metadata = {}
+        elif metadata is None:
+            metadata = {}
+        
+        node_type_enum = NodeType(node_data.get("type", "Entity"))
+        
+        if node_type_enum == NodeType.ENTITY:
+            return EntityNode(
+                id=node_data["id"],
+                type=NodeType.ENTITY,
+                tenant_id=node_data["tenant_id"],
+                name=node_data.get("name", ""),
+                description=node_data.get("description"),
+                confidence=node_data.get("confidence", 1.0),
+                metadata=metadata,
+                created_at=convert_dt(node_data.get("created_at")),
+                updated_at=convert_dt(node_data.get("updated_at")),
+            )
+        elif node_type_enum == NodeType.EVIDENCE:
+            return EvidenceNode(
+                id=node_data["id"],
+                type=NodeType.EVIDENCE,
+                tenant_id=node_data["tenant_id"],
+                evidence_type=node_data.get("evidence_type", "unknown"),
+                source=node_data.get("source", "unknown"),
+                confidence=node_data.get("confidence", 1.0),
+                timestamp=convert_dt(node_data.get("timestamp")),
+                metadata=metadata,
+                created_at=convert_dt(node_data.get("created_at")),
+                updated_at=convert_dt(node_data.get("updated_at")),
+            )
+        elif node_type_enum == NodeType.INDICATOR:
+            return IndicatorNode(
+                id=node_data["id"],
+                type=NodeType.INDICATOR,
+                tenant_id=node_data["tenant_id"],
+                indicator_type=node_data.get("indicator_type", "unknown"),
+                value=node_data.get("value", ""),
+                severity=node_data.get("severity", "medium"),
+                source=node_data.get("source", "unknown"),
+                metadata=metadata,
+                created_at=convert_dt(node_data.get("created_at")),
+                updated_at=convert_dt(node_data.get("updated_at")),
+            )
+        elif node_type_enum == NodeType.ASSET:
+            return AssetNode(
+                id=node_data["id"],
+                type=NodeType.ASSET,
+                tenant_id=node_data["tenant_id"],
+                name=node_data.get("name", ""),
+                asset_type=node_data.get("asset_type", "unknown"),
+                criticality=node_data.get("criticality", "medium"),
+                metadata=metadata,
+                created_at=convert_dt(node_data.get("created_at")),
+                updated_at=convert_dt(node_data.get("updated_at")),
+            )
+        elif node_type_enum == NodeType.ALERT:
+            return AlertNode(
+                id=node_data["id"],
+                type=NodeType.ALERT,
+                tenant_id=node_data["tenant_id"],
+                severity=node_data.get("severity", "medium"),
+                description=node_data.get("description", ""),
+                status=node_data.get("status", "open"),
+                metadata=metadata,
+                created_at=convert_dt(node_data.get("created_at")),
+                updated_at=convert_dt(node_data.get("updated_at")),
+            )
+        
+        return GraphNode(
+            id=node_data["id"],
+            type=node_type_enum,
+            tenant_id=node_data["tenant_id"],
+            metadata=metadata,
+            created_at=convert_dt(node_data.get("created_at")),
+            updated_at=convert_dt(node_data.get("updated_at")),
+        )
+
+    def _get_session(self):
+        driver = self._get_driver()
+        if not driver:
+            raise RuntimeError("Neo4j driver not initialized")
+        return driver.session()
+
+    async def create_node(self, node: GraphNode) -> GraphNode:
+        """Create a new node in the graph."""
+        driver = self._get_driver()
+        if not driver:
+            raise RuntimeError("Neo4j driver not initialized")
+
+        # Build type-specific fields
+        type_specific_params = {}
+        type_specific_clauses = []
+        
+        if node.type == NodeType.EVIDENCE:
+            type_specific_params = {
+                "evidence_type": getattr(node, "evidence_type", "unknown"),
+                "source": getattr(node, "source", "unknown"),
+                "confidence": getattr(node, "confidence", 1.0),
+                "timestamp": node.timestamp.isoformat() if getattr(node, "timestamp", None) else None,
+            }
+        elif node.type == NodeType.ENTITY:
+            type_specific_params = {
+                "name": getattr(node, "name", ""),
+                "description": getattr(node, "description", None),
+                "confidence": getattr(node, "confidence", 1.0),
+            }
+        elif node.type == NodeType.INDICATOR:
+            type_specific_params = {
+                "indicator_type": getattr(node, "indicator_type", "unknown"),
+                "value": getattr(node, "value", ""),
+                "severity": getattr(node, "severity", "medium"),
+                "source": getattr(node, "source", "unknown"),
+            }
+        elif node.type == NodeType.ASSET:
+            type_specific_params = {
+                "name": getattr(node, "name", ""),
+                "asset_type": getattr(node, "asset_type", "unknown"),
+                "criticality": getattr(node, "criticality", "medium"),
+            }
+        elif node.type == NodeType.ALERT:
+            type_specific_params = {
+                "severity": getattr(node, "severity", "medium"),
+                "description": getattr(node, "description", ""),
+                "status": getattr(node, "status", "open"),
+            }
+        
+        for key in type_specific_params:
+            type_specific_clauses.append(f"{key}: ${key}")
+
+        async with driver.session() as session:
+            query = f"""
+            CREATE (n:%s {{
+                id: $id,
+                type: $type,
+                tenant_id: $tenant_id,
+                metadata: $metadata,
+                created_at: datetime($created_at),
+                updated_at: datetime($updated_at)
+                {", " + ", ".join(type_specific_clauses) if type_specific_clauses else ""}
+            }})
+            RETURN n
+            """ % str(node.type)
+            
+            params = {
+                "id": node.id,
+                "type": str(node.type),
+                "tenant_id": node.tenant_id,
+                "metadata": json.dumps(node.metadata),
+                "created_at": node.created_at.isoformat(),
+                "updated_at": node.updated_at.isoformat(),
+                **type_specific_params,
+            }
+            
+            result = await session.run(query, **params)
+            record = await result.single()
+            return self._node_to_model(record["n"], str(node.type))
+
+    async def get_node(self, node_id: str, tenant_id: str) -> Optional[GraphNode]:
+        """Retrieve a node by ID."""
+        driver = self._get_driver()
+        if not driver:
+            return None
+
+        async with driver.session() as session:
+            query = """
+            MATCH (n {id: $node_id, tenant_id: $tenant_id})
+            RETURN n
+            """
+            result = await session.run(query, node_id=node_id, tenant_id=tenant_id)
+            record = await result.single()
+            if not record:
+                return None
+            node_data = record["n"]
+            labels = list(node_data.labels) if node_data.labels else []
+            return self._node_to_model(dict(node_data), labels[0] if labels else "Entity")
+
+    async def update_node(self, node: GraphNode) -> GraphNode:
+        """Update an existing node."""
+        driver = self._get_driver()
+        if not driver:
+            return node
+
+        # Build type-specific fields for update
+        type_specific_params = {}
+        type_specific_clauses = []
+        
+        if node.type == NodeType.EVIDENCE:
+            type_specific_params = {
+                "evidence_type": getattr(node, "evidence_type", "unknown"),
+                "source": getattr(node, "source", "unknown"),
+                "confidence": getattr(node, "confidence", 1.0),
+                "timestamp": node.timestamp.isoformat() if getattr(node, "timestamp", None) else None,
+            }
+        elif node.type == NodeType.ENTITY:
+            type_specific_params = {
+                "name": getattr(node, "name", ""),
+                "description": getattr(node, "description", None),
+                "confidence": getattr(node, "confidence", 1.0),
+            }
+        elif node.type == NodeType.INDICATOR:
+            type_specific_params = {
+                "indicator_type": getattr(node, "indicator_type", "unknown"),
+                "value": getattr(node, "value", ""),
+                "severity": getattr(node, "severity", "medium"),
+                "source": getattr(node, "source", "unknown"),
+            }
+        elif node.type == NodeType.ASSET:
+            type_specific_params = {
+                "name": getattr(node, "name", ""),
+                "asset_type": getattr(node, "asset_type", "unknown"),
+                "criticality": getattr(node, "criticality", "medium"),
+            }
+        elif node.type == NodeType.ALERT:
+            type_specific_params = {
+                "severity": getattr(node, "severity", "medium"),
+                "description": getattr(node, "description", ""),
+                "status": getattr(node, "status", "open"),
+            }
+        
+        for key in type_specific_params:
+            type_specific_clauses.append(f"n.{key} = ${key}")
+
+        async with driver.session() as session:
+            query = f"""
+            MATCH (n {{id: $id, tenant_id: $tenant_id}})
+            SET n.metadata = $metadata,
+                n.updated_at = datetime($updated_at)
+                {", " + ", ".join(type_specific_clauses) if type_specific_clauses else ""}
+            RETURN n
+            """
+            params = {
+                "id": node.id,
+                "tenant_id": node.tenant_id,
+                "metadata": json.dumps(node.metadata),
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+                **type_specific_params,
+            }
+            result = await session.run(query, **params)
+            record = await result.single()
+            return self._node_to_model(record["n"], str(node.type))
+
+    async def delete_node(self, node_id: str, tenant_id: str) -> bool:
+        """Delete a node and its relationships."""
+        driver = self._get_driver()
+        if not driver:
+            return False
+
+        async with driver.session() as session:
+            query = """
+            MATCH (n {id: $node_id, tenant_id: $tenant_id})
+            DETACH DELETE n
+            RETURN count(n) as deleted
+            """
+            result = await session.run(query, node_id=node_id, tenant_id=tenant_id)
+            record = await result.single()
+            return record["deleted"] > 0
+
+    async def create_relationship(self, relationship: GraphRelationship) -> GraphRelationship:
+        """Create a relationship between two nodes."""
+        driver = self._get_driver()
+        if not driver:
+            raise RuntimeError("Neo4j driver not initialized")
+
+        async with driver.session() as session:
+            query = """
+            MATCH (source {id: $source_id, tenant_id: $tenant_id})
+            MATCH (target {id: $target_id, tenant_id: $tenant_id})
+            CREATE (source)-[r:%s {
+                type: $type,
+                tenant_id: $tenant_id,
+                metadata: $metadata,
+                created_at: datetime($created_at)
+            }]->(target)
+            RETURN r
+            """ % str(relationship.type)
+
+            params = {
+                "source_id": relationship.source_id,
+                "target_id": relationship.target_id,
+                "tenant_id": relationship.tenant_id,
+                "type": str(relationship.type),
+                "metadata": json.dumps(relationship.metadata),
+                "created_at": relationship.created_at.isoformat(),
+            }
+            
+            result = await session.run(query, **params)
+            record = await result.single()
+            return relationship
+
+    async def get_relationships(
+        self,
+        node_id: str,
+        tenant_id: str,
+        relationship_type: Optional[str] = None,
+        direction: str = "both"
+    ) -> List[GraphRelationship]:
+        """Get relationships for a node."""
+        driver = self._get_driver()
+        if not driver:
+            return []
+
+        direction_clause = ""
+        if direction == "outgoing":
+            direction_clause = "->"
+        elif direction == "incoming":
+            direction_clause = "<-"
+        else:
+            direction_clause = "-"
+
+        type_filter = ""
+        if relationship_type:
+            type_filter = f":{relationship_type}"
+
+        query = f"""
+        MATCH (n {{id: $node_id, tenant_id: $tenant_id}})
+        MATCH (n){direction_clause}[r{type_filter}]-(m)
+        WHERE r.tenant_id = $tenant_id
+        RETURN r, startNode(r) as source, endNode(r) as target
+        """
+        
+        async with self._get_driver().session() as session:
+            result = await session.run(query, node_id=node_id, tenant_id=tenant_id)
+            relationships = []
+            async for record in result:
+                rel_data = dict(record["r"])
+                source = record["source"]
+                target = record["target"]
+                
+                # Parse metadata if it's a JSON string
+                metadata = rel_data.get("metadata", {})
+                if isinstance(metadata, str):
+                    try:
+                        metadata = json.loads(metadata)
+                    except json.JSONDecodeError:
+                        metadata = {}
+                
+                # Convert Neo4j DateTime to Python datetime
+                created_at = rel_data.get("created_at")
+                if created_at and hasattr(created_at, 'to_native'):
+                    created_at = created_at.to_native()
+                
+                relationships.append(GraphRelationship(
+                    source_id=source["id"],
+                    target_id=target["id"],
+                    type=RelationshipType(rel_data.get("type", "RELATED_TO")),
+                    tenant_id=rel_data.get("tenant_id", tenant_id),
+                    metadata=metadata,
+                    created_at=created_at,
+                ))
+            return relationships
+
+    async def get_neighbors(
+        self,
+        node_id: str,
+        tenant_id: str,
+        relationship_type: Optional[str] = None,
+        direction: str = "both",
+        limit: int = 100
+    ) -> List[GraphNode]:
+        """Get neighboring nodes."""
+        driver = self._get_driver()
+        if not driver:
+            return []
+
+        direction_clause = ""
+        if direction == "outgoing":
+            direction_clause = "->"
+        elif direction == "incoming":
+            direction_clause = "<-"
+        else:
+            direction_clause = "-"
+
+        type_filter = ""
+        if relationship_type:
+            type_filter = f":{relationship_type}"
+
+        query = f"""
+        MATCH (n {{id: $node_id, tenant_id: $tenant_id}})
+        MATCH (n){direction_clause}[r{type_filter}]-(m)
+        WHERE r.tenant_id = $tenant_id
+        RETURN DISTINCT m
+        LIMIT $limit
+        """
+
+        async with self._get_driver().session() as session:
+            result = await session.run(query, node_id=node_id, tenant_id=tenant_id, limit=limit)
+            nodes = []
+            async for record in result:
+                node_data = dict(record["m"])
+                node = self._node_to_model(node_data, list(record["m"].labels)[0] if record["m"].labels else "Entity")
+                if node:
+                    nodes.append(node)
+            return nodes
+
+async def find_shortest_path(
+        self,
+        source_id: str,
+        target_id: str,
+        tenant_id: str,
+        max_depth: int = 10
+    ) -> List[GraphNode]:
+        """Find shortest path between two nodes."""
+        driver = self._get_driver()
+        if not driver:
+            return []
+
+        query = f"""
+        MATCH (source {{id: \$source_id, tenant_id: \$tenant_id}})
+        MATCH (target {{id: \$target_id, tenant_id: \$tenant_id}})
+        MATCH path = shortestPath((source)-[*..{max_depth}]-(target))
+        RETURN nodes(path) as nodes
+        """
+
+        async with self._get_driver().session() as session:
+            result = await session.run(query, source_id=source_id, target_id=target_id, tenant_id=tenant_id)
+            record = await result.single()
+            if not record:
+                return []
+
+            nodes = []
+            for node in record["nodes"]:
+                node_data = dict(node)
+                node_obj = self._node_to_model(node_data, node.labels[0] if node.labels else "Entity")
+                if node_obj:
+                    nodes.append(node_obj)
+            return nodes
+
+    async def search_nodes(
+        self,
+        tenant_id: str,
+        node_type: Optional[str] = None,
+        property_filters: dict = None,
+        limit: int = 100
+    ) -> List[GraphNode]:
+        """Search for nodes matching criteria."""
+        driver = self._get_driver()
+        if not driver:
+            return []
+
+        where_clauses = ["n.tenant_id = $tenant_id"]
+        params = {"tenant_id": tenant_id, "limit": limit}
+
+        if node_type:
+            where_clauses.append("n.type = $node_type")
+            params["node_type"] = node_type
+
+        if property_filters:
+            for key, value in property_filters.items():
+                where_clauses.append(f"n.metadata.{key} = ${key}")
+                params[key] = value
+
+        where_clause = " AND ".join(where_clauses)
+        query = f"""
+        MATCH (n)
+        WHERE {where_clause}
+        RETURN n
+        LIMIT $limit
+        """
+
+        async with self._get_driver().session() as session:
+            result = await session.run(query, **params)
+            nodes = []
+            async for record in result:
+                node_data = dict(record["n"])
+                labels = list(record["n"].labels) if record["n"].labels else []
+                node_type = labels[0] if labels else "Entity"
+                node = self._node_to_model(node_data, node_type)
+                if node:
+                    nodes.append(node)
+            return nodes
+
+    async def find_related_evidence(
+        self,
+        investigation_id: str,
+        tenant_id: str,
+        depth: int = 2
+    ) -> List[GraphNode]:
+        """Find evidence related to an investigation."""
+        driver = self._get_driver()
+        if not driver:
+            return []
+
+        query = f"""
+        MATCH (inv {{id: $investigation_id, tenant_id: $tenant_id}})
+        MATCH path = (inv)-[:*1..{depth}]->(evidence:Evidence)
+        RETURN DISTINCT evidence
+        """
+
+        async with self._get_driver().session() as session:
+            result = await session.run(query, investigation_id=investigation_id, tenant_id=tenant_id)
+            nodes = []
+            async for record in result:
+                node_data = dict(record["evidence"])
+                node = self._node_to_model(node_data, "Evidence")
+                if node:
+                    nodes.append(node)
+            return nodes
+
+    async def find_related_entities(
+        self,
+        entity_id: str,
+        tenant_id: str,
+        max_depth: int = 2
+    ) -> List[GraphNode]:
+        """Find entities related to a given entity."""
+        driver = self._get_driver()
+        if not driver:
+            return []
+
+        query = f"""
+        MATCH (e {{id: $entity_id, tenant_id: $tenant_id}})
+        MATCH path = (e)-[:*1..{max_depth}]-(related:Entity)
+        WHERE related.tenant_id = $tenant_id
+        RETURN DISTINCT related
+        """
+
+        async with self._get_driver().session() as session:
+            result = await session.run(query, entity_id=entity_id, tenant_id=tenant_id)
+            nodes = []
+            async for record in result:
+                node_data = dict(record["related"])
+                labels = list(record["related"].labels) if record["related"].labels else []
+                node_type = labels[0] if labels else "Entity"
+                node = self._node_to_model(node_data, node_type)
+                if node:
+                    nodes.append(node)
+            return nodes
+
+    async def merge_node(self, node: GraphNode) -> GraphNode:
+        """Create or update a node (upsert)."""
+        driver = self._get_driver()
+        if not driver:
+            return node
+
+        async with driver.session() as session:
+            # Build params dynamically based on node type
+            base_params = {
+                "id": node.id,
+                "tenant_id": node.tenant_id,
+                "type": str(node.type),
+                "metadata": json.dumps(node.metadata),
+                "created_at": node.created_at.isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            }
+            
+            # Add type-specific fields
+            type_specific_params = {}
+            if node.type == NodeType.EVIDENCE:
+                type_specific_params = {
+                    "evidence_type": getattr(node, "evidence_type", "unknown"),
+                    "source": getattr(node, "source", "unknown"),
+                    "confidence": getattr(node, "confidence", 1.0),
+                    "timestamp": node.timestamp.isoformat() if getattr(node, "timestamp", None) else None,
+                }
+            elif node.type == NodeType.ENTITY:
+                type_specific_params = {
+                    "name": getattr(node, "name", ""),
+                    "description": getattr(node, "description", None),
+                    "confidence": getattr(node, "confidence", 1.0),
+                }
+            elif node.type == NodeType.INDICATOR:
+                type_specific_params = {
+                    "indicator_type": getattr(node, "indicator_type", "unknown"),
+                    "value": getattr(node, "value", ""),
+                    "severity": getattr(node, "severity", "medium"),
+                    "source": getattr(node, "source", "unknown"),
+                }
+            elif node.type == NodeType.ASSET:
+                type_specific_params = {
+                    "name": getattr(node, "name", ""),
+                    "asset_type": getattr(node, "asset_type", "unknown"),
+                    "criticality": getattr(node, "criticality", "medium"),
+                }
+            elif node.type == NodeType.ALERT:
+                type_specific_params = {
+                    "severity": getattr(node, "severity", "medium"),
+                    "description": getattr(node, "description", ""),
+                    "status": getattr(node, "status", "open"),
+                }
+            
+            # Build query with type-specific fields
+            set_clauses = ["n.type = $type", "n.metadata = $metadata", "n.created_at = datetime($created_at)", "n.updated_at = datetime($updated_at)"]
+            match_set_clauses = ["n.metadata = $metadata", "n.updated_at = datetime($updated_at)"]
+            
+            for key in type_specific_params:
+                set_clauses.append(f"n.{key} = ${key}")
+                match_set_clauses.append(f"n.{key} = ${key}")
+            
+            query = f"""
+            MERGE (n:%s {{id: $id, tenant_id: $tenant_id}})
+            ON CREATE SET
+                {", ".join(set_clauses)}
+            ON MATCH SET
+                {", ".join(match_set_clauses)}
+            RETURN n
+            """ % str(node.type)
+            
+            params = {**base_params, **type_specific_params}
+
+            result = await session.run(query, **params)
+            record = await result.single()
+            return self._node_to_model(record["n"], str(node.type))
+
+    async def merge_relationship(self, relationship: GraphRelationship) -> GraphRelationship:
+        """Create or update a relationship (upsert)."""
+        driver = self._get_driver()
+        if not driver:
+            return relationship
+
+        async with driver.session() as session:
+            query = """
+            MATCH (source {id: $source_id, tenant_id: $tenant_id})
+            MATCH (target {id: $target_id, tenant_id: $tenant_id})
+            MERGE (source)-[r:%s {tenant_id: $tenant_id}]->(target)
+            ON CREATE SET
+                r.type = $type,
+                r.metadata = $metadata,
+                r.created_at = datetime($created_at)
+            ON MATCH SET
+                r.metadata = $metadata
+            RETURN r
+            """ % str(relationship.type)
+
+            params = {
+                "source_id": relationship.source_id,
+                "target_id": relationship.target_id,
+                "tenant_id": relationship.tenant_id,
+                "type": str(relationship.type),
+                "metadata": json.dumps(relationship.metadata),
+                "created_at": relationship.created_at.isoformat(),
+            }
+
+            result = await session.run(query, **params)
+            return relationship
+
+    async def execute_custom_query(self, query: str, parameters: dict) -> list:
+        """Execute a custom Cypher query."""
+        driver = self._get_driver()
+        if not driver:
+            return []
+
+        async with driver.session() as session:
+            result = await session.run(query, parameters)
+            return [record.data() for record in result]
+
+    async def health_check(self) -> bool:
+        """Check database connectivity."""
+        driver = self._get_driver()
+        if not driver:
+            return False
+        try:
+            await driver.verify_connectivity()
+            return True
+        except Exception:
+            return False
+
+    async def create_constraints_and_indexes(self) -> None:
+        """Create necessary constraints and indexes."""
+        driver = self._get_driver()
+        if not driver:
+            return
+
+        queries = [
+            # Constraints - unique id per label
+            "CREATE CONSTRAINT IF NOT EXISTS FOR (n:Entity) REQUIRE n.id IS UNIQUE",
+            "CREATE CONSTRAINT IF NOT EXISTS FOR (n:Evidence) REQUIRE n.id IS UNIQUE",
+            "CREATE CONSTRAINT IF NOT EXISTS FOR (n:Indicator) REQUIRE n.id IS UNIQUE",
+            "CREATE CONSTRAINT IF NOT EXISTS FOR (n:Asset) REQUIRE n.id IS UNIQUE",
+            "CREATE CONSTRAINT IF NOT EXISTS FOR (n:Alert) REQUIRE n.id IS UNIQUE",
+            "CREATE CONSTRAINT IF NOT EXISTS FOR (n:User) REQUIRE n.id IS UNIQUE",
+            "CREATE CONSTRAINT IF NOT EXISTS FOR (n:Device) REQUIRE n.id IS UNIQUE",
+            "CREATE CONSTRAINT IF NOT EXISTS FOR (n:IPAddress) REQUIRE n.id IS UNIQUE",
+            "CREATE CONSTRAINT IF NOT EXISTS FOR (n:Hostname) REQUIRE n.id IS UNIQUE",
+            "CREATE CONSTRAINT IF NOT EXISTS FOR (n:FileHash) REQUIRE n.id IS UNIQUE",
+            "CREATE CONSTRAINT IF NOT EXISTS FOR (n:URL) REQUIRE n.id IS UNIQUE",
+            "CREATE CONSTRAINT IF NOT EXISTS FOR (n:Process) REQUIRE n.id IS UNIQUE",
+            
+            # Indexes
+            "CREATE INDEX IF NOT EXISTS FOR (n:Entity) ON (n.tenant_id)",
+            "CREATE INDEX IF NOT EXISTS FOR (n:Evidence) ON (n.tenant_id)",
+            "CREATE INDEX IF NOT EXISTS FOR (n:Indicator) ON (n.tenant_id)",
+            "CREATE INDEX IF NOT EXISTS FOR (n:Asset) ON (n.tenant_id)",
+            "CREATE INDEX IF NOT EXISTS FOR (n:Alert) ON (n.tenant_id)",
+            "CREATE INDEX IF NOT EXISTS FOR (n:User) ON (n.tenant_id)",
+            "CREATE INDEX IF NOT EXISTS FOR (n:Device) ON (n.tenant_id)",
+            "CREATE INDEX IF NOT EXISTS FOR (n:IPAddress) ON (n.tenant_id)",
+            "CREATE INDEX IF NOT EXISTS FOR (n:Hostname) ON (n.tenant_id)",
+            "CREATE INDEX IF NOT EXISTS FOR (n:FileHash) ON (n.tenant_id)",
+            "CREATE INDEX IF NOT EXISTS FOR (n:URL) ON (n.tenant_id)",
+            "CREATE INDEX IF NOT EXISTS FOR (n:Process) ON (n.tenant_id)",
+            "CREATE INDEX IF NOT EXISTS FOR (n:Entity) ON (n.type)",
+            "CREATE INDEX IF NOT EXISTS FOR (n:Evidence) ON (n.evidence_type)",
+            "CREATE INDEX IF NOT EXISTS FOR (n:Indicator) ON (n.indicator_type)",
+        ]
+
+        async with self._get_driver().session() as session:
+            for query in queries:
+                try:
+                    await session.run(query)
+                except Neo4jError as e:
+                    # Ignore "already exists" errors
+                    if "already exists" not in str(e).lower():
+                        raise

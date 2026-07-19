@@ -3,7 +3,10 @@ uvicorn[standard]
 pydantic
 pydantic-settings
 langgraph
+langgraph-checkpoint-postgres
 confluent-kafka
 python-json-logger
 pytest
 httpx
+asyncpg
+neo4j

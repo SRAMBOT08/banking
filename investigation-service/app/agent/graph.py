@@ -1,6 +1,7 @@
 from __future__ import annotations
 from typing import Any, Callable, Dict, Optional, TypedDict
 from langgraph.checkpoint.memory import MemorySaver
+from langgraph.checkpoint.postgres import PostgresSaver
 from langgraph.graph import END, START, StateGraph
 from langgraph.types import interrupt
 from .checkpoint_manager import CheckpointManager
@@ -16,9 +17,10 @@ class GraphState(TypedDict):
 
 
 class GraphBuilder:
-    def __init__(self, router: ToolRouter, reasoning: Optional[ReasoningEngine] = None, decision: Optional[DecisionEngine] = None, checkpoints: Optional[CheckpointManager] = None):
+    def __init__(self, router: ToolRouter, reasoning: Optional[ReasoningEngine] = None, decision: Optional[DecisionEngine] = None, checkpoints: Optional[CheckpointManager] = None, checkpointer: Optional[Any] = None):
         self.router, self.reasoning, self.decision, self.checkpoints = router, reasoning or ReasoningEngine(), decision or DecisionEngine(), checkpoints or CheckpointManager()
         self._nodes: Dict[str, Callable] = {}
+        self._checkpointer = checkpointer
 
     def register_node(self, name: str, handler: Callable) -> None:
         if name in self._nodes:
@@ -58,7 +60,8 @@ class GraphBuilder:
         graph.add_edge("build_investigation", "generate_ai_report")
         graph.add_edge("generate_ai_report", "execution_planning")
         graph.add_edge("execution_planning", END)
-        return graph.compile(checkpointer=MemorySaver())
+        checkpointer = self._checkpointer or MemorySaver()
+        return graph.compile(checkpointer=checkpointer)
 
     def _checkpoint(self, state: InvestigationState) -> InvestigationState:
         self.checkpoints.create_checkpoint(state, "human_approval")

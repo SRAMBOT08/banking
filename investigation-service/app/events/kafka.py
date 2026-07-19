@@ -6,7 +6,7 @@ from confluent_kafka import Consumer, KafkaError, Producer
 from app.config.settings import settings
 from app.core.logger import get_logger
 from app.models.events import InvestigationEvent, snapshot_metadata_event
-from shared.sentineliq_shared.events.autonomous import InvestigationCompletedEvent
+from sentineliq_shared.events.autonomous import InvestigationCompletedEvent
 from uuid import uuid5, NAMESPACE_URL
 
 logger = get_logger("investigation_kafka")

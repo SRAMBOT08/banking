@@ -15,6 +15,8 @@ from app.agent.reasoning import ReasoningEngine
 from app.agent.decision_engine import DecisionEngine
 from app.agent.state_mapper import StateMapper
 from app.agent.tools.mock_tools import mock_tool_set
+from langgraph.checkpoint.postgres import PostgresSaver
+from app.database import db_manager
 
 logger = get_logger("candidate_pipeline")
 
@@ -38,7 +40,11 @@ class CandidatePipeline:
             self.checkpoint_manager = CheckpointManager()
             self.reasoning_engine = ReasoningEngine()
             self.decision_engine = DecisionEngine()
-            self.planner = InvestigationPlanner(self.tool_router)
+            
+            # Initialize PostgreSQL checkpointer for durable LangGraph checkpointing
+            self._checkpointer = PostgresSaver.from_conn_string(settings.database_url)
+            
+            self.planner = InvestigationPlanner(self.tool_router, checkpointer=self._checkpointer)
             logger.info("agent_components_initialized")
         except Exception as exc:
             logger.error("agent_initialization_failed", extra={"error": str(exc)})
